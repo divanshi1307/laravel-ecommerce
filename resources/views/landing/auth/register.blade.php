@@ -50,7 +50,7 @@
 							</div>
 
 							{{-- Country Code + Phone --}}
-							<div class="m-b25">
+							<div class="m-b40">
 								<label class="label-title">Phone Number <span class="text-danger">*</span></label>
 
 								<!-- Hidden field for country code -->

@@ -7,6 +7,9 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Setting;
+use App\Models\Order;
+use App\Models\OrderUpdate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
@@ -124,4 +127,120 @@ class AdminController extends Controller
 		$data['data'] = (object)$settings;
 		return view('admin.settings',$data);
 	}
+
+    // Orders 
+	public function orders(Request $request)
+    {
+        $query = Order::query();
+        // Filters
+        if ($request->order_id) {
+            $query->where('order_id', $request->order_id);
+        }
+
+        if ($request->from) {
+            $query->whereDate('created_at', '>=', $request->from);
+        }
+
+        if ($request->to) {
+            $query->whereDate('created_at', '<=', $request->to);
+        }
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->payment_method) {
+            $query->where('payment_method', $request->payment_method);
+        }
+
+        $results = $query->orderBy('id', 'DESC')->paginate(10);
+        return view('orders.index', compact('results'));
+    }
+
+    public function vieworder($id)
+    {
+        $order = Order::with('history', 'items.product')->find($id);
+        if (!$order) {
+            return redirect('/admin/orders')->with('status', 'Order not found!');
+        }
+        $order->save();
+        return view('orders.vieworder', [
+            'order' => $order
+        ]);
+    }
+
+    public function updateOrderStatus()
+    {
+        $order = Order::find(request()->id);
+
+        if (!$order) {
+            return response()->json(['msg' => 0]);
+        }
+
+        $order->status = request()->status;
+        $order->save();
+
+        $user = (object) [
+            'first_name' => $order->first_name,
+            'last_name'  => $order->last_name,
+            'email'      => $order->email,
+        ];
+
+        if (empty($user->email)) {
+            return response()->json([
+                'msg' => 1,
+                'warning' => 'Order updated, but customer email not available.'
+            ]);
+        }
+
+        $content = "
+            <p>Dear {$user->first_name},</p>
+            <p>Your Order ID {$order->order_id} status has been updated.</p>
+            <p><strong>Status:</strong> " . Order::$order_status[$order->status] . "</p>
+        ";
+
+        // Send mail
+        Mail::send('mail.common', [
+            'heading' => 'Order Update',
+            'content' => $content
+        ], function ($mail) use ($order, $user) {
+            $mail->to($user->email)
+                ->subject('Order Update: ' . $order->order_id);
+        });
+
+        return response()->json(['msg' => 1]);
+    }
+
+    public function orderupdate()
+    {
+        request()->validate([
+            'content' => 'required'
+        ]);
+
+        $order_update = new OrderUpdate();
+        $order_update->order_id = request()->order_id;
+        $order_update->content = request()->content;
+        $order_update->date_created = now();
+        $order_update->save();
+
+        $order = $order_update->order ?? null;
+        $billing = $order->billing ?? null;
+        $user = $billing ? json_decode($billing) : null;
+
+        if (!$user || empty($user->email)) {
+            return back()->with('status', 'Update saved, but email not sent because billing info missing.');
+        }
+
+        Mail::send('mail.common', [
+            'heading' => 'Order Update',
+            'content' => request()->content
+        ], function ($mail) use ($order, $user) {
+            $mail->to($user->email)
+                ->subject('Order update for ORDER ID: ' . $order->order_id);
+        });
+
+        return back()->with('status', 'Update sent to customer successfully');
+    }
+
+
 }

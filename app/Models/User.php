@@ -24,6 +24,7 @@ class User extends Authenticatable
         'country_code',
         'phone_number',
         'is_verified',
+        'profile_image'
     ];
 
     protected $casts = [

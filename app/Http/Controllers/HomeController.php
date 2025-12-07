@@ -5,6 +5,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Slider;
 use App\Models\Brand;
+use App\Models\ProductAttribute;
 use App\Models\ProductAttributeRelation;
 
 use Illuminate\Http\Request;
@@ -44,9 +45,10 @@ class HomeController extends Controller
             $q->where('subcategory_id', $id);
         })->get();
 
+        // ALL products
         $productsQuery = Product::where('subcategory_id', $subcategory->id);
-
         $allProductsForRange = $productsQuery->get();
+
         $allPrices = [];
 
         foreach ($allProductsForRange as $p) {
@@ -82,13 +84,12 @@ class HomeController extends Controller
         $minAvailablePrice = 0;
         $maxAvailablePrice = $allPrices ? ceil(max($allPrices)) : 50000;
 
-        // ---------------------------------------------
-        // PRICE FILTER
-        // ---------------------------------------------
-        if ($request->filled('min_price') && $request->filled('max_price')) {
+        $minReq = $request->input('min_price');
+        $maxReq = $request->input('max_price');
 
-            $minFilter = min($request->min_price, $request->max_price);
-            $maxFilter = max($request->min_price, $request->max_price);
+        if ($minReq !== null && $maxReq !== null) {
+            $minFilter = min($minReq, $maxReq);
+            $maxFilter = max($minReq, $maxReq);
 
             $productsQuery->where(function ($q) use ($minFilter, $maxFilter) {
                 $q->whereBetween('price', [$minFilter, $maxFilter])
@@ -98,9 +99,7 @@ class HomeController extends Controller
             });
         }
 
-        // ---------------------------------------------
         // SORTING
-        // ---------------------------------------------
         if ($request->sort == 'latest') {
             $productsQuery->orderBy('id', 'DESC');
         } elseif ($request->sort == 'popular') {
@@ -108,26 +107,27 @@ class HomeController extends Controller
         } elseif ($request->sort == 'rating') {
             $productsQuery->orderBy('rating', 'DESC');
         } elseif ($request->sort == 'low_high') {
-            $productsQuery->orderBy('price', 'DESC'); 
+            $productsQuery->orderBy('price', 'DESC');
         } elseif ($request->sort == 'high_low') {
-            $productsQuery->orderBy('price', 'ASC'); 
+            $productsQuery->orderBy('price', 'ASC');
         }
 
-        // ---------------------------------------------
-        // ⭐ EXTRACT UNIQUE SIZES
-        // ---------------------------------------------
-        $allSizes = [];
+        // ----------------------------------------------------
+        // ⭐ EXTRACT UNIQUE SIZE VALUES FROM JSON RELATION
+        // ----------------------------------------------------
+        $query = Product::query();
         $selectedSize = $request->size;
+        $allSizes = [];
 
-        $attributeRows = ProductAttributeRelation::get();
-
-        foreach ($attributeRows as $row) {
+        $attributes = ProductAttributeRelation::get();
+        foreach ($attributes as $row) {
             if ($row->json) {
-                $json = json_decode($row->json, true);
+                $jsonData = json_decode($row->json, true);
 
-                if (isset($json['Size'])) {
-                    $size = trim($json['Size']);
-                    if ($size !== "" && !in_array($size, $allSizes)) {
+                if (isset($jsonData['Size'])) {
+                    $size = trim($jsonData['Size']);
+
+                    if (!in_array($size, $allSizes)) {
                         $allSizes[] = $size;
                     }
                 }
@@ -136,14 +136,31 @@ class HomeController extends Controller
 
         sort($allSizes);
 
-        // ---------------------------------------------
-        // ⭐ SIZE FILTER
-        // ---------------------------------------------
-        if ($request->filled('size')) {
-
-            $selectedSize = $request->size;
-
+        if ($selectedSize) {
             $productIds = ProductAttributeRelation::whereJsonContains('json->Size', $selectedSize)
+                ->pluck('product_id');
+
+            $query->whereIn('id', $productIds);
+        }
+
+
+        // ----------------------------------------------------
+        // ⭐ SIZE FILTER (Very Important)
+        // ----------------------------------------------------
+        if ($request->filled('size')) {
+            $selectedSize = $request->size;
+            $productsQuery->whereHas('attributeRelations', function ($q) use ($selectedSize) {
+                $q->whereJsonContains('json->Size', $selectedSize);
+            });
+        }
+
+        // ---------------------------------------------
+        // BABY WEIGHT FILTER
+        // ---------------------------------------------
+        if ($request->filled('baby_weight')) {
+            $selectedWeight = $request->baby_weight; // array of selected IDs
+
+            $productIds = ProductAttribute::whereIn('baby_weight_id', $selectedWeight)
                 ->pluck('product_id')
                 ->toArray();
 
@@ -151,14 +168,22 @@ class HomeController extends Controller
         }
 
         // ---------------------------------------------
-        // PAGINATION
+        // AGE GROUP FILTER
         // ---------------------------------------------
-        $perPage = (int)$request->input('per_page', 12);
+        if ($request->filled('age_group')) {
+            $selectedAges = $request->age_group; // array of selected IDs
+
+            $productIds = ProductAttribute::whereIn('age_group_id', $selectedAges)
+                ->pluck('product_id')
+                ->toArray();
+
+            $productsQuery->whereIn('id', $productIds);
+        }
+
+        // PAGINATION
+        $perPage = (int) $request->input('per_page', 12);
         $products = $productsQuery->paginate($perPage)->appends($request->all());
 
-        // ---------------------------------------------
-        // RETURN VIEW
-        // ---------------------------------------------
         return view('landing.sub-category', compact(
             'categories',
             'category',

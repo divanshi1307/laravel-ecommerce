@@ -4,6 +4,7 @@
     <title>{{ config('app.name') }}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -60,34 +61,10 @@
 
 </head>
 
-<!-- JAVASCRIPT FILES ========================================= -->
-    <script src="{{ asset('landing/js/jquery.min.js') }}"></script>
-    <script src="{{ asset('landing/js/wow.min.js') }}"></script>
-    <script src="{{ asset('landing/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta3/js/bootstrap-select.min.js"></script>
-    {{-- <script src="{{ asset('landing/js/bootstrap-select.min.js') }}"></script>  --}}
-    <script src="{{ asset('landing/js/bootstrap-touchspin.js') }}"></script> 
-    <script src="{{ asset('landing/js/swiper-bundle.min.js') }}"></script> 
-    <script src="{{ asset('landing/js/magnific-popup.js') }}"></script> 
-    <script src="{{ asset('landing/js/imagesloaded.js') }}"></script> 
-    <script src="{{ asset('landing/js/masonry-4.2.2.js') }}"></script> 
-    <script src="{{ asset('landing/js/isotope.pkgd.min.js') }}"></script> 
-    <script src="{{ asset('landing/js/jquery.countdown.js') }}"></script> 
-    <script src="{{ asset('landing/js/wNumb.js') }}"></script> 
-    <script src="{{ asset('landing/js/nouislider.min.js') }}"></script>
-    <script src="{{ asset('landing/js/slick.min.js') }}"></script> 
-    <script src="{{ asset('landing/js/lightgallery.min.js') }}"></script>
-    <script src="{{ asset('landing/js/lg-thumbnail.min.js') }}"></script>
-    <script src="{{ asset('landing/js/lg-zoom.min.js') }}"></script>
-    <script src="{{ asset('landing/js/dz.carousel.js') }}"></script>
-    <script src="{{ asset('landing/js/dz.ajax.js') }}"></script>
-    <script src="{{ asset('landing/js/custom.js') }}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"></script>
-
 <body id="bg">
 <!-- start header section -->
-@include('landing.partials.header', ['categories' => $categories])
+{{-- @include('landing.partials.header', ['categories' => $categories]) --}}
+@include('landing.partials.header')
 <!-- end header section -->
 
 <div class="min-h-screen">
@@ -105,15 +82,59 @@
             </div>
         @endif
 
-    @yield('content')
-  </main>
+        @yield('content')
+    </main>
 </div>
 
 <!-- start footer section -->
 @include('landing.partials.footer', ['categories' => $categories])
 <!-- end footer section -->
 
+<!-- JAVASCRIPT FILES ========================================= -->
+    <script src="{{ asset('landing/js/jquery.min.js') }}"></script>
+    <script src="{{ asset('landing/js/custom.js') }}"></script>
+    <script src="{{ asset('landing/js/wow.min.js') }}"></script>
+    {{-- <script src="{{ asset('landing/js/bootstrap.bundle.min.js') }}"></script> --}}
+    
+    {{-- Add to cart  --}}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    {{-- Quick View Product  --}}
+    {{-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>  --}}
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta3/js/bootstrap-select.min.js"></script>
+    {{-- <script src="{{ asset('landing/js/bootstrap-select.min.js') }}"></script>  --}}
+    <script src="{{ asset('landing/js/bootstrap-touchspin.js') }}"></script> 
+    <script src="{{ asset('landing/js/swiper-bundle.min.js') }}"></script> 
+    <script src="{{ asset('landing/js/magnific-popup.js') }}"></script> 
+    <script src="{{ asset('landing/js/imagesloaded.js') }}"></script> 
+    <script src="{{ asset('landing/js/masonry-4.2.2.js') }}"></script> 
+    <script src="{{ asset('landing/js/isotope.pkgd.min.js') }}"></script> 
+    <script src="{{ asset('landing/js/jquery.countdown.js') }}"></script> 
+    <script src="{{ asset('landing/js/wNumb.js') }}"></script> 
+    <script src="{{ asset('landing/js/nouislider.min.js') }}"></script>
+    <script src="{{ asset('landing/js/slick.min.js') }}"></script> 
+    <script src="{{ asset('landing/js/lightgallery.min.js') }}"></script>
+    <script src="{{ asset('landing/js/lg-thumbnail.min.js') }}"></script>
+    <script src="{{ asset('landing/js/lg-zoom.min.js') }}"></script>
+    <script src="{{ asset('landing/js/dz.carousel.js') }}"></script>
+    {{-- <script src="{{ asset('landing/js/dz.ajax.js') }}"></script> --}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"></script>
+
 @yield('script')
+<script>
+    setTimeout(function() {
+        let alertBox = document.querySelector('.alert');
+        if (alertBox) {
+            alertBox.style.transition = "0.5s";
+            alertBox.style.opacity = "0";
+
+            setTimeout(() => alertBox.remove(), 500); 
+        }
+    }, 2500);
+</script>
 
 </body>
 </html>

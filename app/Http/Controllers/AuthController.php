@@ -51,12 +51,9 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
+            return redirect()->back()->withErrors($validator)->withInput();
         }
-
+        
         $user = User::create([
             'name'        => $request->name,
             'email'       => $request->email,
@@ -223,8 +220,7 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')
-            ->with('success', 'Logged out successfully');
+        return redirect()->route('login')->with('success', 'Logged out successfully');
     }
 
     // ======================

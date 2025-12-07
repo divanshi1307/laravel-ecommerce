@@ -61,12 +61,11 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($categories as $k => $category)
+                @forelse($categoryList  as $k => $category)
                     <tr>
-                        <td>
-                            {{ $k + 1 + ($categories->currentPage() - 1) * $categories->perPage() }}
+                        <td class="text-center">
+                            {{ $k + 1 + ($categoryList ->currentPage() - 1) * $categoryList ->perPage() }}
                         </td>
-                        
                         <td>
                             {{ $category->parent ? $category->parent->category_name : 'N/A' }}
                         </td>
@@ -115,8 +114,8 @@
             </tbody>
         </table>
         <div class="co-sm-12">
-            <div class="float-left">{{ $categories->links() }}</div>
-            <div class="text-left float-left">showing {{ $categories->count() }} of {{ $categories->total() }} Records</div>
+            <div class="float-left">{{ $categoryList ->links() }}</div>
+            <div class="text-left float-left">showing {{ $categoryList ->count() }} of {{ $categoryList->total() }} Records</div>
             <div class="clearfix"></div>
         </div>   
     </div>

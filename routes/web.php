@@ -11,23 +11,42 @@ use App\Http\Controllers\ProductAttributeController;
 use App\Http\Controllers\HomeController;
 use App\Http\Middleware\AdminAuthenticate;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AgeGroupController;
+use App\Http\Controllers\BabyWeightController;
+use App\Http\Controllers\GstController;
+use App\Http\Controllers\AdultWaistController;
 
 // Route::get('/', function () {
 //     return view('welcome');
 // });
 
-Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/search-products', [HomeController::class, 'search'])->name('products.search');
-// Show subcategory page
-Route::get('/subcategory/{id}', [HomeController::class, 'subcategoryProducts']);
+Route::get('/fix-cache', function () {
+    \Artisan::call('optimize:clear');
+    return 'cache cleared';
+});
 
-// PRODUCT DETAILS PAGE
-Route::get('/product/{id}', [ProductController::class, 'productDetail'])->name('product.show');
+Route::get('/create-storage-link', function () {
+    // Only allow this in local or staging environment
+    if (app()->environment(['local', 'staging'])) {
+        try {
+            Artisan::call('storage:link');
+            return '✅ Storage link created successfully!';
+        } catch (\Exception $e) {
+            return '❌ Error: ' . $e->getMessage();
+        }
+    }
+    return abort(403);
+});
 
 
-
-
-
+// -------------------------------------------------
+// ADMIN ROUTES
+// -------------------------------------------------
 Route::get('admin', [AdminController::class, 'main']);
 Route::prefix('admin')->group(function(){
 	
@@ -53,6 +72,18 @@ Route::prefix('admin')->group(function(){
     Route::resource('/products', ProductController::class);
     Route::resource('/sliders', SliderController::class);
     Route::resource('/locations', LocationController::class);
+    Route::get('orders', [AdminController::class, 'orders'])->middleware([AdminAuthenticate::class]);
+    Route::get('vieworder/{id}', [AdminController::class, 'vieworder'])->middleware([AdminAuthenticate::class]);
+    Route::post('vieworder/{id}', [AdminController::class, 'vieworder'])->middleware([AdminAuthenticate::class]);
+    Route::post('updateOrderStatus', [AdminController::class, 'updateOrderStatus'])->middleware([AdminAuthenticate::class]);
+    Route::post('orderupdate', [AdminController::class, 'orderupdate'])->middleware([AdminAuthenticate::class]);
+
+    // GROUPS
+    Route::resource('age-groups', AgeGroupController::class);
+    Route::resource('baby-weight', BabyWeightController::class);
+    Route::resource('gst-module', GstController::class);
+    Route::resource('adult-waist', AdultWaistController::class);
+
 });
 
 Route::post('/category/update-status', [CategoryController::class, 'updateStatus'])->name('category.updateStatus');
@@ -61,13 +92,17 @@ Route::post('/get-subcategories', [ProductController::class, 'getSubCategories']
 Route::post('/brands/update-status', [BrandController::class, 'updateStatus'])->name('brands.updateStatus');
 
 Route::delete('/products/remove-image/{id}', [ProductController::class, 'removeImage']);
+Route::delete('/products/remove-bottom-image/{id}', [ProductController::class, 'removeBottomImage']);
 Route::delete('/variant-image-delete/{id}', [ProductController::class, 'deleteVariantImage'])->name('variant.image.delete');
 Route::post('/products/update-status', [ProductController::class, 'updateStatus'])->name('products.updateStatus');
 Route::post('/locations/update-status', [LocationController::class, 'updateStatus'])->name('locations.updateStatus');
-Route::post('/variant-combination/remove-image', [ProductController::class, 'removeVariantImage'])
-      ->name('variant-combination.removeImage');
+Route::post('/variant-combination/remove-image', [ProductController::class, 'removeVariantImage'])->name('variant-combination.removeImage');
 
-// Register
+// -------------------------------------------------
+// USER'S ROUTE
+// -------------------------------------------------
+
+// REGISTER USER
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register.form');
 Route::post('/register', [AuthController::class, 'register'])->name('register.store');
 
@@ -89,7 +124,56 @@ Route::get('/reset-password', [AuthController::class, 'showResetForm'])->name('p
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.reset');
 
 // Logout
-Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// HOME
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/search-products', [HomeController::class, 'search'])->name('products.search');
+// Show subcategory page
+Route::get('/subcategory/{id}', [HomeController::class, 'subcategoryProducts'])->name('subcategory.products');
+
+// PRODUCT DETAILS PAGE
+Route::get('/product/{id}', [ProductController::class, 'productDetail'])->name('product.show');
+Route::get('/get-attribute-image/{id}', [ProductController::class, 'getAttributeImage']);
+
+// WISHLIST PAGE
+Route::middleware('auth')->group(function () {
+    Route::post('/wishlist/toggle/{product}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::get('/wishlist/render', [WishlistController::class, 'render'])->name('wishlist.render');
+    Route::post('/wishlist/remove/{product}', [WishlistController::class, 'remove'])->name('wishlist.remove');
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+});
+
+//////// CART PAGE
+Route::middleware('auth')->group(function () {
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/add', [CartController::class, 'addToCart'])->name('cart.add');
+    Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
+    Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+    Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::get('/order-success/{id}', [CheckoutController::class, 'orderSuccess'])->name('order.success');
+});
+
+//////// ORDER PAGE
+Route::get('/orders', [OrderController::class, 'index'])->name('orders.index')->middleware('auth');
+
+//////// DASHBOARD PAGE
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [AccountController::class, 'dashboard'])->name('account.dashboard');
+});
+
+// Profile Page
+Route::get('/account/profile', [AccountController::class, 'profile'])->name('account.profile')->middleware('auth');
+
+// Update Profile
+Route::get('/account/profile', [AccountController::class, 'profile'])->name('account.profile')->middleware('auth');
+Route::post('/account/profile/update', [AccountController::class, 'updateProfile'])->name('account.profile.update')->middleware('auth');
+
+
+
+
+
 
 
 

@@ -11,8 +11,8 @@ class Product extends Model
     use HasFactory, SoftDeletes; 
     protected $table = 'products';
     protected $fillable = [
-        'user_id','category_id','subcategory_id','brand_id','title','product_item_code','product_type','description',
-        'specifications','images','price','special_price','is_active','highlights','sort_no',
+        'user_id','category_id','subcategory_id','brand_id','gst_id','title','product_item_code','product_type','description',
+        'specifications','images','bottom_images','price','special_price','is_active','highlights','sort_no',
         'stock_quantity','stock_status','meta_title','meta_description','seo_image','meta_tags'
     ];
 
@@ -35,6 +35,16 @@ class Product extends Model
         return $this->belongsTo(Brand::class);
     }
     
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function gst()
+    {
+        return $this->belongsTo(GstModule::class, 'gst_id');
+    }
+
     public function seoImage()
     {
         return $this->belongsTo(Upload::class, 'seo_image');
@@ -75,6 +85,24 @@ class Product extends Model
         if (!$this->images) return 'default.jpg';
 
         $ids = explode(',', $this->images);
+        $image = Upload::find($ids[0]);
+
+        return $image ? $image->file_name : 'default.jpg';
+    }
+
+    public function getBottomImagesListAttribute()
+    {
+        if (!$this->bottom_images) return collect();
+
+        $ids = explode(',', $this->bottom_images);
+        return Upload::whereIn('id', $ids)->get();
+    }
+
+    public function getFirstBottomImageUrlAttribute()
+    {
+        if (!$this->bottom_images) return 'default.jpg';
+
+        $ids = explode(',', $this->bottom_images);
         $image = Upload::find($ids[0]);
 
         return $image ? $image->file_name : 'default.jpg';

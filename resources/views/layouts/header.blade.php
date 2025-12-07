@@ -75,7 +75,31 @@ if( !in_array($current_route,['login','dashboard']) ){
                                                 <a href="{{ url('admin/locations') }}">
                                                     <i class="fa fa-link"></i> Locations</a>
                                             </li>
-                                                
+
+                                            <li class="{{ Request::is('admin/orders*') ? 'active-nav' : '' }}">
+                                                <a href="{{ url('admin/orders') }}">
+                                                    <i class="fa fa-shopping-cart"></i> Orders</a>
+                                            </li>
+                                            
+                                            <li class="{{ Request::is('admin/age-groups*') ? 'active-nav' : '' }}">
+                                                <a href="{{ url('admin/age-groups') }}">
+                                                    <i class="fa fa-tags"></i> Age Group</a>
+                                            </li>
+
+                                            <li class="{{ Request::is('admin/baby-weight*') ? 'active-nav' : '' }}">
+                                                <a href="{{ url('admin/baby-weight') }}">
+                                                    <i class="fa fa-tags"></i> Baby Weight</a>
+                                            </li>
+
+                                            <li class="{{ Request::is('admin/gst-module*') ? 'active-nav' : '' }}">
+                                                <a href="{{ url('admin/gst-module') }}">
+                                                    <i class="fa fa-tags"></i>GST Module </a>
+                                            </li>
+                                            <li class="{{ Request::is('admin/adult-waist*') ? 'active-nav' : '' }}">
+                                                <a href="{{ url('admin/adult-waist') }}">
+                                                    <i class="fa fa-tags"></i>Adult waist size </a>
+                                            </li>
+                                            
                                         </ul>
                                     </div>
                                 </div>

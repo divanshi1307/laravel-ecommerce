@@ -41444,4 +41444,27 @@ footer {
     .cat-item span{margin-left:24px;}
     .search-container { padding: 10px 12px; }
 }
+.dz-wishicon .dz-heart-fill {
+    display: none;
+    color: red;
+}
+
+.dz-wishicon.active .dz-heart-fill {
+    display: inline-block;
+}
+
+.dz-wishicon.active .dz-heart {
+    display: none;
+}
+
+/* When product exists in cart */
+.shop-card .shop-meta .meta-icon.in-cart {
+    background: #750909 !important;
+}
+
+/* Optional: turn basket-on icon white when active */
+.shop-card .shop-meta .meta-icon.in-cart i {
+    color: white;
+}
+
 /*# sourceMappingURL=style.css.map */

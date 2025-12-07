@@ -36,7 +36,7 @@
                     <input type="text" name="product_item_code" class="form-control" value="{{ $product->product_item_code }}">
                 </div>
 
-                <div class="col-md-12 mb-3">
+                <div class="col-md-6 mb-3">
                     <label>Select Category <span class="text-danger">*</span></label>
                     <div class="custom-select-wrapper position-relative">
                         <select name="category_id" id="category_id" 
@@ -54,7 +54,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-12 mb-3">
+                <div class="col-md-6 mb-3">
                     <label>Select Sub Category </label>
                     <div class="custom-select-wrapper position-relative">
                         <select name="subcategory_id" id="subcategory_id" class="form-control custom-select-box">
@@ -69,7 +69,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-12 mb-3">
+                <div class="col-md-6 mb-3">
                     <label>Select Brand</label>
                     <div class="custom-select-wrapper position-relative">
                         <select name="brand_id" class="form-control custom-select-box">
@@ -77,6 +77,21 @@
                             @foreach($brands as $b)
                                 <option value="{{ $b->id }}" {{ $b->id == $product->brand_id ? 'selected':'' }}>
                                     {{ $b->brand_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <i class="fa fa-caret-down select-icon" aria-hidden="true"></i>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label>GST%</label>
+                    <div class="custom-select-wrapper position-relative">
+                        <select name="gst_id" class="form-control custom-select-box">
+                            <option value="">-- Select GST% --</option>
+                            @foreach($gst as $g)
+                                <option value="{{ $g->id }}" {{ $g->id == $product->gst_id ? 'selected':'' }}>
+                                    {{ $g->gst_percentage }}
                                 </option>
                             @endforeach
                         </select>
@@ -94,8 +109,8 @@
                     <div class="custom-select-wrapper">
                         <select name="product_type" id="product_type" class="form-control custom-select-box @error('product_type') is-invalid @enderror" required>
                             <option value="">Select Product Type</option>
-                            <option value="simple" {{ $product->product_type=='simple'?'selected':'' }}>Simple</option>
-                            <option value="variant" {{ $product->product_type=='variant'?'selected':'' }}>Variant</option>
+                            <option value="simple" {{ $product->product_type=='simple'?'selected':'' }}>Module For Simple Product</option>
+                            <option value="variant" {{ $product->product_type=='variant'?'selected':'' }}>Module For Variant Product</option>
                         </select>
                         <i class="fa fa-caret-down select-icon" aria-hidden="true"></i>
                         @error('product_type')
@@ -193,68 +208,76 @@
                 </div>
             </div>
 
-            <div id="variant_button_section" class="mb-3" style="display:none;">
+            {{-- <div id="variant_button_section" class="mb-3" style="display:none;">
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#variantModal">
                     + Update Variant
                 </button>
-            </div>
+            </div> --}}
 
             <!-- Attribute Section -->
-            <div id="attribute_section" @if($product->product_type != 'variant') style="display:none;" @endif>
-                @if(!empty($product->attributes) && count($product->attributes) > 0)
-                    @foreach($product->attributes as $index => $attribute)
-                        <div class="row attribute_row mb-3">
-                            <div class="col-md-5">
-                                @if($index == 0)
-                                    <label class="form-label">Attribute Name <span class="text-danger">*</span></label>
-                                @endif
+           <div id="attribute_section">
+                @foreach($attributes as $index => $group)
+                    <div class="attribute_row mb-3">
 
-                                <input type="text" name="attribute_name[]" value="{{ old('attribute_name.' . $index, $attribute->attribute_name) }}" class="form-control @error('attribute_name.' . $index) is-invalid @enderror" placeholder="e.g. Color, Size, Material" required>
-
-                                @error('attribute_name.' . $index)
-                                    <span class="invalid-feedback">{{ $message }}</span>
-                                @enderror
+                        <div class="d-flex align-items-end attribute_group" data-index="{{ $index }}" style="gap:8px;">
+                            <div style="flex: 1;">
+                                <label class="form-label">Attribute Name <span class="text-danger">*</span></label>
+                                <input type="text" name="attribute_name[{{ $index }}]" value="{{ $group['attribute_name'] }}"
+                                    class="form-control">
                             </div>
 
-                            {{-- Attribute Value --}}
-                            <div class="col-md-5">
-                                @if($index == 0)
-                                    <label class="form-label">Attribute Value <span class="text-danger">*</span></label>
-                                @endif
-                                
-                                <div class="tag-box form-control @error('attribute_value.' . $index) is-invalid @enderror"
-                                    data-name="attribute_value[]">
-                                    @php
-                                        $values = old('attribute_value.' . $index, $attribute->attribute_value);
-                                        $values = is_string($values) ? explode(',', $values) : [];
-                                    @endphp
-
-                                    @foreach($values as $v)
-                                        <span class="tag">{{ $v }} <i class="fa fa-times remove-tag"></i></span>
-                                    @endforeach
-
-                                    <input type="text" class="tag-input" placeholder="Type & press Enter">
-                                    <input type="hidden" name="attribute_value[]" value="{{ implode(',', $values) }}" required>
-                                </div>
-
-                                @error('attribute_value.' . $index)
-                                    <span class="invalid-feedback">{{ $message }}</span>
-                                @enderror
-                            </div>
-
-                            <div class="col-md-2 d-flex align-items-end gap-2">
-                                <button type="button" class="btn btn-success btn-sm add_attribute_row">
-                                    <i class="fa fa-plus"></i>
-                                </button>
-
-                                <button type="button" class="btn btn-danger btn-sm remove_attribute_row">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                            </div>
+                            <button type="button" class="btn btn-success btn-sm add_attribute_name_row"><i class="fa fa-plus"></i></button>
+                            <button type="button" class="btn btn-danger btn-sm remove_attribute_name_row"><i class="fa fa-trash"></i></button>
                         </div>
-                    @endforeach
-                @endif
+
+                        <div class="attribute_values_container">
+                            @foreach($group['rows'] as $rowIndex => $row)
+                                <div class="d-flex flex-wrap align-items-end gap-3 attribute_type">
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">Baby Weight</label>
+                                        <select name="baby_weight_id[{{ $index }}][]" class="form-control custom-select-box">
+                                            <option value="">-- Select Baby Weight--</option>
+                                            @foreach($baby_weight as $weight)
+                                                <option value="{{ $weight->id }}" 
+                                                    {{ isset($row['baby_weight_id']) && $row['baby_weight_id'] == $weight->id ? 'selected' : '' }}>
+                                                    {{ $weight->weight_range }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">Age Groups</label>
+                                        <select name="age_group_id[{{ $index }}][]" class="form-control custom-select-box">
+                                            <option value="">-- Select Age Groups--</option>
+                                            @foreach($age_group as $ag)
+                                                <option value="{{ $ag->id }}" 
+                                                    {{ isset($row['age_group_id']) && $row['age_group_id'] == $ag->id ? 'selected' : '' }}>
+                                                    {{ $ag->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">Attribute Value <span class="text-danger">*</span></label>
+                                        <input type="text" name="attribute_value[{{ $index }}][]" class="form-control"
+                                            value="{{ $row['attribute_value'] }}">
+                                    </div>
+
+                                    <div class="d-flex align-items-end" style="gap:8px;">
+                                        <button type="button" class="btn btn-success btn-sm add_attribute_row"><i class="fa fa-plus"></i></button>
+                                        <button type="button" class="btn btn-danger btn-sm remove_attribute_row"><i class="fa fa-trash"></i></button>
+                                    </div>
+
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
             </div>
+
             <!-- Variant Combinations -->
 
             @if($product->product_type == 'variant')
@@ -387,6 +410,26 @@
                                 <div class="position-relative me-2 mb-2 image-preview" style="display:inline-block;">
                                     <img src="{{ asset('uploads/products/' . $img->file_name) }}" width="80" style="border:1px solid #ccc; padding:2px;">
                                     <button type="button" class="btn btn-sm btn-danger remove-image-btn"
+                                        data-id="{{ $img->id }}" style="position:absolute; top:0; right:0; padding:2px 6px; font-size:12px;">&times;</button>
+                                </div>
+                            @endforeach
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Bottom Images preview -->
+                <div class="col-md-12 mb-3">
+                    <label>Bottom Images</label>
+                    <input type="file" name="bottom_images[]" id="bottom_images" class="form-control" multiple>
+                </div>
+
+                <div class="col-md-12 mb-3" id="existing-bottom-images-container">
+                    <div id="existing-bottom-images" class="d-flex flex-wrap">
+                        @if($product->bottom_images_list && $product->bottom_images_list->count() > 0)
+                            @foreach($product->bottom_images_list as $img)
+                                <div class="position-relative me-2 mb-2 image-preview" style="display:inline-block;">
+                                    <img src="{{ asset('uploads/products/' . $img->file_name) }}" width="80" style="border:1px solid #ccc; padding:2px;">
+                                    <button type="button" class="btn btn-sm btn-danger remove-bottom-image-btn"
                                         data-id="{{ $img->id }}" style="position:absolute; top:0; right:0; padding:2px 6px; font-size:12px;">&times;</button>
                                 </div>
                             @endforeach
@@ -546,6 +589,58 @@
                             button.parent().remove(); 
                             if($('#existing-images').children().length === 0) {
                                 $('#existing-images-container').remove(); 
+                            }
+                        } else {
+                            alert('Failed to delete image.');
+                        }
+                    },
+                    error: function() {
+                        alert('Something went wrong.');
+                    }
+                });
+            }
+        });
+
+        // PREVIEW FOR BOTTOM IMAGES
+        $('#bottom_images').on('change', function (event) {
+            $('#existing-bottom-images').append('<div id="new-bottom-preview" class="d-flex flex-wrap"></div>');
+            let files = event.target.files;
+            let fileArray = Array.from(files);
+            let input = this;
+
+            fileArray.forEach((file, index) => {
+                let reader = new FileReader();
+                reader.onload = function (e) {
+                    let html = `
+                        <div class="position-relative me-2 mb-2 image-preview" data-index="${index}" style="display:inline-block;">
+                            <img src="${e.target.result}" width="80" style="border:1px solid #ccc; padding:2px;">
+                            <button type="button" class="btn btn-sm btn-danger remove-new-image-btn"
+                                data-index="${index}"
+                                style="position:absolute; top:0; right:0; padding:2px 6px; font-size:12px;">&times;</button>
+                        </div>
+                    `;
+                    $('#new-bottom-preview').append(html);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        $('#existing-bottom-images').on('click', '.remove-bottom-image-btn', function() {
+            var button = $(this);
+            var imageId = button.data('id');
+
+            if(confirm('Are you sure you want to remove this image?')) {
+                $.ajax({
+                    url: '/products/remove-bottom-image/' + imageId,
+                    type: 'DELETE',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        if(response.success) {
+                            button.parent().remove(); 
+                            if($('#existing-bottom-images').children().length === 0) {
+                                $('#existing-bottom-images-container').remove(); 
                             }
                         } else {
                             alert('Failed to delete image.');
@@ -773,26 +868,62 @@
             }
         });
 
-        // Add new attribute row
-        $(document).on('click', '.add_attribute_row', function () {
-            let clone = $('.attribute_row:first').clone();
+        // ADD ATTRIBUTE NAME ROW 
 
-            clone.find('input[type="text"]').val('');
-            clone.find('.tag').remove();
-            clone.find('input[type="hidden"]').val('');
-            clone.find('.is-invalid').removeClass('is-invalid');
-            clone.find('.invalid-feedback').remove();
-            clone.find('label').remove();
+        function reindexGroups() {
+            $(".attribute_group").each(function(groupIndex) {
+                $(this).attr("data-index", groupIndex);
 
-            $('#attribute_section').append(clone);
+                // Update attribute_name input
+                $(this).find("input[name^='attribute_name']").attr("name", `attribute_name[${groupIndex}]`);
+
+                // Update all rows inside this group
+                $(this).closest(".attribute_row").find(".attribute_type").each(function() {
+                    $(this).find("input[name^='attribute_value']").attr("name", `attribute_value[${groupIndex}][]`);
+                    $(this).find("input[name^='weight_value']").attr("name", `weight_value[${groupIndex}][]`);
+                    $(this).find("select[name^='weight_type']").attr("name", `weight_type[${groupIndex}][]`);
+                });
+            });
+        }
+
+        // Add attribute value row
+        $(document).on("click", ".add_attribute_row", function() {
+            let group = $(this).closest(".attribute_row").find(".attribute_values_container");
+            let clone = group.find(".attribute_type:first").clone();
+
+            clone.find("input, select").val(""); // clear inputs
+            group.append(clone);
+
+            reindexGroups();
         });
 
-        // Remove Attribute Row
-        $(document).on('click', '.remove_attribute_row', function () {
-            if ($('.attribute_row').length > 1) {
-                $(this).closest('.attribute_row').remove();
+        // Remove attribute value row
+        $(document).on("click", ".remove_attribute_row", function() {
+            let group = $(this).closest(".attribute_row").find(".attribute_values_container");
+            if (group.find(".attribute_type").length > 1) {
+                $(this).closest(".attribute_type").remove();
+                reindexGroups();
             }
         });
+
+        // Add attribute group
+        $(document).on("click", ".add_attribute_name_row", function() {
+            let lastGroup = $(".attribute_row:last").clone();
+            lastGroup.find("input, select").val(""); // clear values
+            $("#attribute_section").append(lastGroup);
+            reindexGroups();
+        });
+
+        // Remove attribute group
+        $(document).on("click", ".remove_attribute_name_row", function() {
+            if ($(".attribute_row").length > 1) {
+                $(this).closest(".attribute_row").remove();
+                reindexGroups();
+            } else {
+                alert("At least one attribute group is required");
+            }
+        });
+
 
         // Focus input when clicking box
         $(document).on('click', '.tag-box', function () {

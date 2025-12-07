@@ -47,6 +47,22 @@
                 </ul>
             </div>
         </div>
+
+        @if(auth()->check())
+            <div class="header-nav w3menu navbar-collapse collapse justify-content-start" id="navbarNavDropdown">
+                <ul class="nav navbar-nav ms-auto">
+                    <li class="sub-menu-down">
+                        <a href="javascript:void(0);"><span>My Account</span> <i class="fas fa-chevron-down tabindex"></i></a>
+                        <ul class="sub-menu">						
+                            <li><a href="{{ route('account.dashboard') }}">Dashboard</a></li>
+                            <li><a href="{{route('orders.index')}}">Orders</a></li>
+                            <li><a href="account-order-details.html">Orders Details</a></li>
+                            
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        @endif
 				
         <!-- EXTRA NAV -->
         <div class="extra-nav">
@@ -58,38 +74,14 @@
                                 <a class="nav-link d-flex align-items-center gap-2"
                                     href="#" id="userMenu"
                                     data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
-                                        alt="User Avatar"
-                                        class="rounded-circle"
-                                        style="width:32px; height:32px; object-fit:cover;">
+                                    <img src="{{ auth()->user()->profile_image ? asset('uploads/profile/' . auth()->user()->profile_image) : 'https://cdn-icons-png.flaticon.com/512/847/847969.png' }}" 
+                                        alt="User Avatar" class="rounded-circle" style="width:32px; height:32px; object-fit:cover;">
 
                                     <span class="fw-semibold">{{ auth()->user()->name }}</span>
                                 </a>
-
-                                <ul class="dropdown-menu dropdown-menu-end p-0 shadow rounded-4" style="width:260px">
-                                    <li class="p-3 bg-light rounded-top">
-                                        <div class="d-flex align-items-center">
-                                            <div class="flex-grow-1">
-                                                <h6 class="fw-bold mb-0">{{ auth()->user()->name }}</h6>
-                                                <small class="text-dark fw-semibold" style="background:#f5f5f5; padding:2px 6px; border-radius:4px;">
-                                                    {{ auth()->user()->email }}
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li><a class="dropdown-item py-2" href="#">My Profile</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-
-                                    <!-- Logout -->
-                                    <li>
-                                        <a class="dropdown-item text-danger fw-semibold py-2" href="{{"/login"}}">
-                                            Logout
-                                        </a>
-                                    </li>
-                                </ul>
                             </li>
                         @else
-                            <a class="nav-link" href="{{"/register"}}">
+                            <a class="nav-link" href="{{"/login"}}">
                                 Login / Register
                             </a>
                         @endif
@@ -103,7 +95,7 @@
                     <li class="nav-item cart-link">
                         <a href="javascript:void(0);" class="nav-link cart-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight">
                             <i class="iconly-Broken-Buy"></i>
-                            <span class="badge badge-circle">5</span>
+                            <span class="badge badge-circle cart-count">{{ $cartItemsCount ?? 0 }}</span>
                         </a>
                     </li>
                 </ul>
@@ -124,155 +116,35 @@
                 <div class="dz-tabs">
                     <ul class="nav nav-tabs center" id="myTab" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="shopping-cart" data-bs-toggle="tab" data-bs-target="#shopping-cart-pane" type="button" role="tab" aria-controls="shopping-cart-pane" aria-selected="true">Shopping Cart
-                                <span class="badge badge-light">5</span>
+                            <button class="nav-link active" id="shopping-cart" data-bs-toggle="tab" data-bs-target="#shopping-cart-pane" type="button" role="tab" aria-controls="shopping-cart-pane" aria-selected="true">
+                                Shopping Cart
+                                <span class="badge badge-light cart-count">{{ $cartItemsCount ?? 0 }}</span>
                             </button>
                         </li>
+
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="wishlist" data-bs-toggle="tab" data-bs-target="#wishlist-pane" type="button" role="tab" aria-controls="wishlist-pane" aria-selected="false" tabindex="-1">Wishlist
-                                <span class="badge badge-light">2</span>
+                            <button class="nav-link" id="wishlist" data-bs-toggle="tab" data-bs-target="#wishlist-pane" type="button" role="tab" aria-controls="wishlist-pane" aria-selected="false" tabindex="-1">
+                                Wishlist
+                                <span class="badge badge-light" id="wishlist-count">
+                                    {{ $wishlist->count() }}
+                                </span>
                             </button>
                         </li>
                     </ul>
                     <div class="tab-content pt-4" id="dz-shopcart-sidebar">
                         <div class="tab-pane fade show active" id="shopping-cart-pane" role="tabpanel" aria-labelledby="shopping-cart" tabindex="0">
-                            <div class="shop-sidebar-cart">
-                                <ul class="sidebar-cart-list">
-                                    <li>
-                                        <div class="cart-widget">
-                                            <div class="dz-media me-3">
-                                                <img src="images/shop/shop-cart/pic1.jpg" alt="">
-                                            </div>
-                                            <div class="cart-content">
-                                                <h6 class="title"><a href="product-thumbnail.html">Sophisticated Swagger Suit</a></h6>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="btn-quantity light quantity-sm me-3">
-                                                        <div class="input-group bootstrap-touchspin"><span class="input-group-addon bootstrap-touchspin-prefix" style="display: none;"></span><input type="text" value="1" name="demo_vertical2" class="form-control" style="display: block;"><span class="input-group-addon bootstrap-touchspin-postfix" style="display: none;"></span><span class="input-group-btn-vertical"><button class="btn btn-default bootstrap-touchspin-up" type="button"><i class="fa-solid fa-plus"></i></button><button class="btn btn-default bootstrap-touchspin-down" type="button"><i class="fa-solid fa-minus"></i></button></span></div>
-                                                    </div>
-                                                    <h6 class="dz-price mb-0">$50.00</h6>
-                                                </div>
-                                            </div>
-                                            <a href="javascript:void(0);" class="dz-close">
-                                                <i class="ti-close"></i>
-                                            </a>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="cart-widget">
-                                            <div class="dz-media me-3">
-                                                <img src="images/shop/shop-cart/pic2.jpg" alt="">
-                                            </div>
-                                            <div class="cart-content">
-                                                <h6 class="title"><a href="product-thumbnail.html">Cozy Knit Cardigan Sweater</a></h6>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="btn-quantity light quantity-sm me-3">
-                                                        <div class="input-group bootstrap-touchspin"><span class="input-group-addon bootstrap-touchspin-prefix" style="display: none;"></span><input type="text" value="1" name="demo_vertical2" class="form-control" style="display: block;"><span class="input-group-addon bootstrap-touchspin-postfix" style="display: none;"></span><span class="input-group-btn-vertical"><button class="btn btn-default bootstrap-touchspin-up" type="button"><i class="fa-solid fa-plus"></i></button><button class="btn btn-default bootstrap-touchspin-down" type="button"><i class="fa-solid fa-minus"></i></button></span></div>
-                                                    </div>
-                                                    <h6 class="dz-price mb-0">$40.00</h6>
-                                                </div>
-                                            </div>
-                                            <a href="javascript:void(0);" class="dz-close">
-                                                <i class="ti-close"></i> 
-                                            </a>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="cart-widget">
-                                            <div class="dz-media me-3">
-                                                <img src="images/shop/shop-cart/pic3.jpg" alt="">
-                                            </div>
-                                            <div class="cart-content">
-                                                <h6 class="title"><a href="product-thumbnail.html">Athletic Mesh Sports Leggings</a></h6>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="btn-quantity light quantity-sm me-3">
-                                                        <div class="input-group bootstrap-touchspin"><span class="input-group-addon bootstrap-touchspin-prefix" style="display: none;"></span><input type="text" value="1" name="demo_vertical2" class="form-control" style="display: block;"><span class="input-group-addon bootstrap-touchspin-postfix" style="display: none;"></span><span class="input-group-btn-vertical"><button class="btn btn-default bootstrap-touchspin-up" type="button"><i class="fa-solid fa-plus"></i></button><button class="btn btn-default bootstrap-touchspin-down" type="button"><i class="fa-solid fa-minus"></i></button></span></div>
-                                                    </div>
-                                                    <h6 class="dz-price  mb-0">$65.00</h6>
-                                                </div>
-                                            </div>
-                                            <a href="javascript:void(0);" class="dz-close">
-                                                <i class="ti-close"></i>
-                                            </a>
-                                        </div>
-                                    </li>	
-                                </ul>
-                                <div class="cart-total">
-                                    <h5 class="mb-0">Subtotal:</h5>
-                                    <h5 class="mb-0">300.00$</h5>
-                                </div>
-                                <div class="mt-auto">
-                                    <div class="shipping-time">													
-                                        <div class="dz-icon">
-                                            <i class="flaticon flaticon-ship"></i>
-                                        </div>
-                                        <div class="shipping-content">
-                                            <h6 class="title pe-4">Congratulations , you've got free shipping!</h6>
-                                            <div class="progress">
-                                                <div class="progress-bar progress-animated border-0" style="width: 75%;" role="progressbar">
-                                                    <span class="sr-only">75% Complete</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <a href="shop-checkout.html" class="btn btn-outline-secondary btn-block m-b20">Checkout</a>	
-                                    <a href="shop-cart.html" class="btn btn-secondary btn-block">View Cart</a>	
-                                </div>	
-                            </div>	
+
+                            @include('components.cart-sidebar', [
+                                    'cartItems' => $cartItems,
+                                    'cartTotal' => $cartTotal
+                            ])
                         </div>
+
                         <div class="tab-pane fade" id="wishlist-pane" role="tabpanel" aria-labelledby="wishlist" tabindex="0">
                             <div class="shop-sidebar-cart">
-                                <ul class="sidebar-cart-list">
-                                    <li>
-                                        <div class="cart-widget">
-                                            <div class="dz-media me-3">
-                                                <img src="images/shop/shop-cart/pic1.jpg" alt="">
-                                            </div>
-                                            <div class="cart-content">
-                                                <h6 class="title"><a href="product-thumbnail.html">Sophisticated Swagger Suit</a></h6>
-                                                <div class="d-flex align-items-center">
-                                                    <h6 class="dz-price  mb-0">$50.00</h6>
-                                                </div>
-                                            </div>
-                                            <a href="javascript:void(0);" class="dz-close">
-                                                <i class="ti-close"></i>
-                                            </a>
-                                        </div>
-                                    </li>
-                                    <li>
-                                    <div class="cart-widget">
-                                            <div class="dz-media me-3">
-                                                <img src="images/shop/shop-cart/pic2.jpg" alt="">
-                                            </div>
-                                            <div class="cart-content">
-                                                <h6 class="title"><a href="product-thumbnail.html">Cozy Knit Cardigan Sweater</a></h6>
-                                                <div class="d-flex align-items-center">
-                                                    <h6 class="dz-price  mb-0">$40.00</h6>
-                                                </div>
-                                            </div>
-                                            <a href="javascript:void(0);" class="dz-close">
-                                                <i class="ti-close"></i> 
-                                            </a>
-                                        </div>
-                                    </li>
-                                    <li>
-                                        <div class="cart-widget">
-                                            <div class="dz-media me-3">
-                                                <img src="images/shop/shop-cart/pic3.jpg" alt="">
-                                            </div>
-                                            <div class="cart-content">
-                                                <h6 class="title"><a href="product-thumbnail.html">Athletic Mesh Sports Leggings</a></h6>
-                                                <div class="d-flex align-items-center">
-                                                    <h6 class="dz-price  mb-0">$65.00</h6>
-                                                </div>
-                                            </div>
-                                            <a href="javascript:void(0);" class="dz-close">
-                                                <i class="ti-close"></i>
-                                            </a>
-                                        </div>
-                                    </li>	
-                                </ul>
+                                <ul class="sidebar-cart-list" id="wishlistArea"></ul>
                                 <div class="mt-auto">
-                                    <a href="shop-wishlist.html" class="btn btn-secondary btn-block">Check Your Favourite</a>
+                                    <a href="{{ route('wishlist.index') }}" class="btn btn-secondary btn-block">Check Your Favourite</a>
                                 </div>	
                             </div>
                         </div>
@@ -284,7 +156,7 @@
 	<!-- Sidebar cart -->
 
     <!-- Sidebar finter -->
-    <div class="offcanvas dz-offcanvas offcanvas offcanvas-end " tabindex="-1" id="offcanvasLeft">
+    {{-- <div class="offcanvas dz-offcanvas offcanvas offcanvas-end " tabindex="-1" id="offcanvasLeft">
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close">
             ×
         </button>
@@ -422,7 +294,7 @@
                 <a href="javascript:void(0);" class="btn btn-sm font-14 btn-secondary btn-sharp">RESET</a>
             </div>
         </div>
-    </div>
+    </div> --}}
     <!-- filter sidebar -->
 		
 </header>

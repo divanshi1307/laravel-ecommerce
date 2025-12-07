@@ -17,8 +17,8 @@ class CategoryController extends Controller
         if ($request->name) {
             $query->where('category_name', 'like', '%' . $request->name . '%');
         }
-        $categories = $query->orderBy('id', 'desc')->paginate(10);
-        return view('categories.index', compact('categories'));
+        $categoryList  = $query->orderBy('id', 'desc')->paginate(10);
+        return view('categories.index', compact('categoryList'));
     }
 
     /**

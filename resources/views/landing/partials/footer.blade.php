@@ -11,7 +11,7 @@
                             @if($category->children->count() > 0)
                                 <ul>
                                     @foreach($category->children as $sub)
-                                        <li><a href="javascript:void(0);">{{ $sub->category_name }}</a></li>
+                                        <li><a href="{{ url('/subcategory/'.$sub->id) }}">{{ $sub->category_name }}</a></li>
                                     @endforeach
                                 </ul>
                             @endif

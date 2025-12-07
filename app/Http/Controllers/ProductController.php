@@ -9,6 +9,10 @@ use App\Models\ProductVariant;
 use App\Models\ProductAttribute; 
 use App\Models\ProductAttributeRelation; 
 use App\Models\Upload;
+use App\Models\GstModule;
+use App\Models\AgeGroup;
+use App\Models\BabyWeight;
+use App\Models\WishList;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -45,7 +49,10 @@ class ProductController extends Controller
         $categories = Category::whereNull('parent_id')->get(); 
         $subcategories = Category::whereNotNull('parent_id')->get();
         $brands = Brand::all();
-        return view('products.create', compact('categories','brands','subcategories'));
+        $gst = GstModule::all();
+        $baby_weight = BabyWeight::all();
+        $age_group = AgeGroup::all();
+        return view('products.create', compact('categories','brands','subcategories','gst','baby_weight','age_group'));
     }
 
     public function getSubCategories(Request $request)
@@ -63,6 +70,8 @@ class ProductController extends Controller
             'price'              => 'required_if:product_type,simple|numeric|nullable',
             'images' => 'required|array', 
             'images.*' => 'image|mimes:jpg,jpeg,png|max:2048',
+            'bottom_images' => 'nullable|array',
+            'bottom_images.*' => 'image|mimes:jpg,jpeg,png|max:2048',
             'seo_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'attribute_name.*'  => 'required_if:product_type,variant|max:255',
             'attribute_value.*' => 'required_if:product_type,variant|max:255',
@@ -76,18 +85,13 @@ class ProductController extends Controller
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-        // if ($validator->fails()) {
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'errors' => $validator->errors()
-        //     ], 422);
-        // }
-
+        
         $product = Product::create([
             'user_id'            => auth()->id(),
             'category_id'        => $request->category_id,
             'subcategory_id'     => $request->subcategory_id,
             'brand_id'           => $request->brand_id,
+            'gst_id'             => $request->gst_id,
             'title'              => $request->title,
             'product_item_code'  => $request->product_item_code,
             'product_type'       => $request->product_type,
@@ -143,6 +147,31 @@ class ProductController extends Controller
             }
         }
 
+        // --------------------- MULTIPLE BOTTOM IMAGES ---------------------
+
+        $bottom_image_ids = [];
+        if($request->hasFile('bottom_images')){
+            foreach($request->bottom_images as $image){
+                $originalName = $image->getClientOriginalName();
+                $extension = $image->getClientOriginalExtension();
+                $fileName = time().rand(100,999).".".$extension;
+                $fileSize = $image->getSize();
+                $image->move(public_path('uploads/products'), $fileName);
+
+                $upload = Upload::create([
+                    'file_original_name' => $originalName,
+                    'file_name' => $fileName,
+                    'user_id' => auth()->id(),
+                    'file_size' => $fileSize,
+                    'extension' => $extension,
+                    'type' => 'product',
+                    'alt_tag' => $request->title,
+                ]);
+
+                $bottom_image_ids[] = $upload->id;
+            }
+        }
+
         // --------------------- SEO IMAGE UPLOAD ---------------------
         $seo_image_id = null;
 
@@ -169,57 +198,100 @@ class ProductController extends Controller
 
         $product->update([
             'images' => implode(',', $image_ids),
+            'bottom_images' => implode(',', $bottom_image_ids),
             'seo_image' => $seo_image_id,
         ]);
 
         // --------------------- SAVE PRODUCT ATTRIBUTES ---------------------
     
+        // Delete old attributes
+        ProductAttribute::where('product_id', $product->id)->delete();
+
+        $attributes = []; // Prepare for variant combinations
+
         if ($request->has('attribute_name') && $request->has('attribute_value')) {
 
-            ProductAttribute::where('product_id', $product->id)->delete();
-            $attributes = [];
-
+            // -------------------------------------------------
+            // SAVE PRODUCT ATTRIBUTES AND BUILD $attributes ARRAY
+            // -------------------------------------------------
             foreach ($request->attribute_name as $i => $name) {
-                if (!$name) continue;
-                $values = $request->attribute_value[$i];
-                $values = is_array($values)
-                    ? array_map('trim', $values)
-                    : array_map('trim', explode(',', $values));
 
-                ProductAttribute::create([
-                    'product_id'      => $product->id,
-                    'attribute_name'  => $name,
-                    'attribute_value' => implode(',', $values)
-                ]);
+                foreach ($request->attribute_value[$i] as $j => $value) {
 
-                $attributes[$name] = $values;
+                    if (empty($value)) continue;
+
+                    ProductAttribute::create([
+                        'product_id'      => $product->id,
+                        'attribute_name'  => $name,
+                        'attribute_value' => $value,
+                        'baby_weight_id'  => $request->baby_weight_id[$i][$j] ?? null,
+                        'age_group_id'    => $request->age_group_id[$i][$j] ?? null,
+                    ]);
+
+                    // Build array for combination generation
+                    $attributes[$name][] = $value;
+                }
             }
 
-            if ($product->product_type === 'variant') {
+            // -------------------------------------------------
+            // CREATE VARIANT COMBINATIONS
+            // -------------------------------------------------
+            if ($product->product_type === 'variant' && !empty($attributes)) {
+
+                // Delete old combinations
                 $product->attributeRelations()->delete();
 
-                $result = [[]];
-
-                foreach ($attributes as $name => $vals) {
-                    $result = collect($result)->flatMap(function ($r) use ($vals, $name) {
-                        return collect($vals)->map(fn($v) => $r + [$name => $v]);
+                // Generate all combinations
+                $combinations = [[]];
+                foreach ($attributes as $key => $values) {
+                    $combinations = collect($combinations)->flatMap(function($combo) use ($key, $values) {
+                        return collect($values)->map(fn($v) => array_merge($combo, [$key => $v]));
                     })->toArray();
                 }
 
-                foreach ($result as $row) {
-                    $value = implode(' - ', $row); 
-                    $ids = ''; 
-                    $json = json_encode($row);
+                // Save each combination
+                foreach ($combinations as $i => $combo) {
 
-                    $product->attributeRelations()->create([
-                        'json' => $json,
-                        'value' => $value,
-                        'value_attribute_ids' => $ids,
-                        'price' => 0,
-                        'image' => null,
-                        'product_id' => $product->id,
-                        'is_default' => 0
+                    $valueStr = implode(' - ', $combo);
+
+                    $relation = $product->attributeRelations()->create([
+                        'json'           => json_encode($combo),
+                        'value'          => $valueStr,
+                        'price'          => $request->price[$i] ?? 0,
+                        'original_price' => $request->original_price[$i] ?? null,
+                        'quantity'       => $request->quantity[$i] ?? 0,
+                        'is_default'     => 0
                     ]);
+
+                    // Handle variant images
+                    $imageIds = $request->variant_old_images[$i] ?? [];
+
+                    if ($request->hasFile("image.$i")) {
+                        foreach ($request->file("image.$i") as $file) {
+                            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                            $file->move(public_path('uploads/products'), $fileName);
+
+                            $upload = Upload::create([
+                                'file_original_name' => $file->getClientOriginalName(),
+                                'file_name'          => $fileName,
+                                'file_path'          => "uploads/products/$fileName",
+                                'user_id'            => auth()->id(),
+                                'file_size'          => $file->getSize(),
+                                'extension'          => $file->getClientOriginalExtension(),
+                                'type'               => 'variant_combination',
+                                'alt_tag'            => $request->title,
+                                'model'              => 'ProductAttributeRelation',
+                                'model_id'           => $relation->id,
+                            ]);
+
+                            $imageIds[] = $upload->id;
+                        }
+                    }
+
+                    if (!empty($imageIds)) {
+                        $relation->image = implode('|', $imageIds);
+                        $relation->save();
+                    }
                 }
             }
         }
@@ -276,7 +348,7 @@ class ProductController extends Controller
     public function edit($id)
     {
         $product = Product::with(['variants', 'attributes','attributeRelations'])->findOrFail($id);
-        foreach ($product->variants as $variant) {
+        foreach ($product->variants ?? collect() as $variant) {
             if (!empty($variant->variant_images)) {
                 $imageIds = is_array($variant->variant_images) 
                             ? $variant->variant_images 
@@ -298,8 +370,31 @@ class ProductController extends Controller
         $categories = Category::where('parent_id', null)->get();
         $subcategories = Category::where('parent_id', $product->category_id)->get();
         $brands = Brand::all();
+        $gst = GstModule::all();
+        $baby_weight = BabyWeight::all();
+        $age_group = AgeGroup::all();
 
-        return view('products.edit', compact('product', 'categories', 'subcategories', 'brands','specifications'));
+        $attributes = [];
+
+        foreach ($product->attributes as $attr) {
+            $attrName = $attr->attribute_name;
+
+            if (!isset($attributes[$attrName])) {
+                $attributes[$attrName] = [
+                    "attribute_name" => $attrName,
+                    "rows" => []
+                ];
+            }
+
+            $attributes[$attrName]["rows"][] = [
+                "baby_weight_id"  => $attr->baby_weight_id,   
+                "age_group_id"    => $attr->age_group_id ,
+                "attribute_value" => $attr->attribute_value
+            ];
+        }
+
+        $attributes = array_values($attributes);
+        return view('products.edit', compact('product', 'categories', 'subcategories', 'brands', 'gst','specifications','attributes','baby_weight','age_group'));
     }
 
     public function update(Request $request, $id)
@@ -312,18 +407,14 @@ class ProductController extends Controller
             'special_price' => 'nullable|numeric',
             'images'        => ($product->images) ? 'nullable|array' : 'required|array', 
             'images.*' => 'image|mimes:jpg,jpeg,png|max:2048',
+            'bottom_images' => 'nullable|array',
+            'bottom_images.*' => 'image|mimes:jpg,jpeg,png|max:2048',
             'seo_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'attribute_name.*'  => 'required_if:product_type,variant|max:255',
             'attribute_value.*' => 'required_if:product_type,variant|max:255',
             'stock_quantity' => 'required_if:product_type,simple|numeric|nullable',
         ]);
 
-        // if ($validator->fails()) {
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'errors' => $validator->errors()
-        //     ], 422);
-        // }
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
@@ -346,6 +437,7 @@ class ProductController extends Controller
             'category_id' => $request->category_id,
             'subcategory_id' => $request->subcategory_id,
             'brand_id' => $request->brand_id,
+            'gst_id' => $request->gst_id,
             'title' => $request->title,
             'product_type' => $request->product_type,
             'product_item_code'  => $request->product_item_code,
@@ -381,7 +473,7 @@ class ProductController extends Controller
         }
         /*
         |--------------------------------------------------------------------------
-        | IMAGE UPLOADS
+        | MULTIPLE IMAGE UPLOADS
         |--------------------------------------------------------------------------
         */
         if ($request->hasFile('images')) {
@@ -408,6 +500,35 @@ class ProductController extends Controller
             $product->update(['images' => implode(',', $all_images)]);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | MULTIPLE BOTTOM IMAGE 
+        |--------------------------------------------------------------------------
+        */
+        if ($request->hasFile('bottom_images')) {
+            $bottom_image_ids = [];
+            foreach ($request->file('bottom_images') as $image) {
+                $fileSize = $image->getSize(); 
+                $fileName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                
+                $image->move(public_path('uploads/products'), $fileName);
+
+                $upload = Upload::create([
+                    'file_original_name' => $image->getClientOriginalName(),
+                    'file_name' => $fileName,
+                    'user_id' => auth()->id(),
+                    'file_size' => $fileSize, 
+                    'extension' => $image->getClientOriginalExtension(),
+                    'type' => 'product',
+                    'alt_tag' => $request->title,
+                ]);
+                $bottom_image_ids[] = $upload->id;
+            }
+            $existing_images = $product->bottom_images ? explode(',', $product->bottom_images) : [];
+            $all_images = array_merge($existing_images, $bottom_image_ids);
+            $product->update(['bottom_images' => implode(',', $all_images)]);
+        }
+
         // ---------------- SINGLE SEO IMAGE ----------------
         if ($request->hasFile('seo_image')) {
             $seo = $request->file('seo_image');
@@ -431,86 +552,106 @@ class ProductController extends Controller
 
         // --------------------- UPDATE PRODUCT ATTRIBUTES ---------------------
 
-        if ($request->has('attribute_name') && $request->has('attribute_value')) {
-            ProductAttribute::where('product_id', $product->id)->delete();
+        // Delete old attributes
+        ProductAttribute::where('product_id', $product->id)->delete();
 
-            $attributes = [];
+        $attributes = []; // for combination generation
 
-            foreach ($request->attribute_name as $i => $name) {
-                if (!$name) continue;
+        if ($request->has('attribute_name')) {
 
-                $values = $request->attribute_value[$i];
-                $values = is_array($values)
-                    ? array_map('trim', $values)
-                    : array_map('trim', explode(',', $values));
+            foreach ($request->attribute_name as $index => $attrName) {
+                if (empty($attrName)) continue;
 
-                ProductAttribute::create([
-                    'product_id'      => $product->id,
-                    'attribute_name'  => $name,
-                    'attribute_value' => implode(',', $values)
-                ]);
+                $rowValues     = $request->attribute_value[$index] ?? [];
+                $rowBabyWeight = $request->baby_weight_id[$index] ?? [];
+                $rowAgeGroups  = $request->age_group_id[$index] ?? [];
 
-                $attributes[$name] = $values;
-            }
+                foreach ($rowValues as $rowIndex => $value) {
+                    if (empty($value)) continue;
 
-            if ($product->product_type === 'variant') {
-                $product->attributeRelations()->delete();
+                    $babyWeightId = $rowBabyWeight[$rowIndex] ?? null;
+                    $ageGroupId   = $rowAgeGroups[$rowIndex] ?? null;
 
-                $result = [[]];
-                foreach ($attributes as $name => $vals) {
-                    $result = collect($result)->flatMap(function ($r) use ($vals, $name) {
-                        return collect($vals)->map(fn($v) => $r + [$name => $v]);
-                    })->toArray();
-                }
-
-                foreach ($result as $i => $row) {
-                    $value = implode(' - ', $row); 
-                    $json = json_encode($row);
-
-                    $relation = $product->attributeRelations()->create([
-                        'json'                => $json,
-                        'value'               => $value,
-                        'value_attribute_ids' => '', 
-                        'price'               => $request->price[$i] ?? 0,
-                        'original_price'      => $request->original_price[$i] ?? null,
-                        'quantity'            => $request->quantity[$i] ?? 0,
-                        'product_id'          => $product->id,
-                        'is_default'          => (isset($request->is_default) && in_array($value, $request->is_default)) ? 1 : 0,
+                    // Save attribute
+                    ProductAttribute::create([
+                        'product_id'      => $product->id,
+                        'attribute_name'  => $attrName,
+                        'attribute_value' => $value,
+                        'baby_weight_id'  => $babyWeightId,
+                        'age_group_id'    => $ageGroupId,
                     ]);
 
-                    // Handle multiple images
-                    $imageIds = [];
-                    $oldImages = $request->variant_old_images[$i] ?? [];
+                    // Save for combination generation
+                    $attributes[$attrName][] = [
+                        'value'          => $value,
+                        'baby_weight_id' => $babyWeightId,
+                        'age_group_id'   => $ageGroupId,
+                    ];
+                }
+            }
+        }
 
-                    if ($request->hasFile("image.$i")) {
-                        $imageIds = $oldImages;
-                        foreach ($request->file("image.$i") as $file) {
-                            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                            $fileSize = $file->getSize();
-                            $file->move(public_path('uploads/products'), $fileName);
+        // ---------------------------------------------------
+        // CREATE VARIANT COMBINATIONS
+        // ---------------------------------------------------
+        if ($product->product_type === 'variant' && !empty($attributes)) {
 
-                            $upload = Upload::create([
-                                'file_original_name' => $file->getClientOriginalName(),
-                                'file_name'          => $fileName,
-                                'file_path'          => "uploads/products/$fileName",
-                                'user_id'            => auth()->id(),
-                                'file_size'          => $fileSize,
-                                'extension'          => $file->getClientOriginalExtension(),
-                                'type'               => 'variant_combination',
-                                'alt_tag'            => $request->title,
-                                'model'              => 'ProductAttributeRelation',
-                                'model_id'           => $relation->id,
-                            ]);
+            // Delete old combinations
+            $product->attributeRelations()->delete();
 
-                            $imageIds[] = $upload->id;
-                        }
+            // Generate all combinations
+            $combinations = [[]];
+            foreach ($attributes as $attrName => $values) {
+                $combinations = collect($combinations)->flatMap(function($combo) use ($attrName, $values) {
+                    return collect($values)->map(fn($v) => array_merge($combo, [$attrName => $v]));
+                })->toArray();
+            }
 
-                        $relation->image = implode('|', $imageIds);
-                        $relation->save();
-                    } elseif (!empty($oldImages)) {
-                        $relation->image = implode('|', $oldImages);
-                        $relation->save();
+            // Save each combination
+            foreach ($combinations as $i => $combo) {
+
+                $valueStr = implode(' - ', array_map(fn($item) => $item['value'], $combo));
+
+                $relation = $product->attributeRelations()->create([
+                    'json'           => json_encode($combo),
+                    'value'          => $valueStr,
+                    'value_attribute_ids' => '', // optional
+                    'price'          => $request->price[$i] ?? 0,
+                    'original_price' => $request->original_price[$i] ?? null,
+                    'quantity'       => $request->quantity[$i] ?? 0,
+                    'is_default'     => (!empty($request->is_default) && in_array($valueStr, $request->is_default)) ? 1 : 0,
+                ]);
+
+                // Handle images
+                $imageIds = $request->variant_old_images[$i] ?? [];
+                if ($request->hasFile("image.$i")) {
+                    foreach ($request->file("image.$i") as $file) {
+                        if (!$file->isValid()) continue;
+
+                        $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                        $fileSize = $file->getSize();
+                        $file->move(public_path('uploads/products'), $fileName);
+
+                        $upload = Upload::create([
+                            'file_original_name' => $file->getClientOriginalName(),
+                            'file_name'          => $fileName,
+                            'file_path'          => "uploads/products/$fileName",
+                            'user_id'            => auth()->id(),
+                            'file_size'          => $fileSize,
+                            'extension'          => $file->getClientOriginalExtension(),
+                            'type'               => 'variant_combination',
+                            'alt_tag'            => $product->title,
+                            'model'              => 'ProductAttributeRelation',
+                            'model_id'           => $relation->id,
+                        ]);
+
+                        $imageIds[] = $upload->id;
                     }
+                }
+
+                if (!empty($imageIds)) {
+                    $relation->image = implode('|', $imageIds);
+                    $relation->save();
                 }
             }
         }
@@ -518,28 +659,48 @@ class ProductController extends Controller
         // ---------------- SAVE VARIANTS ----------------
         if ($request->product_type == 'variant') {
             $variantName = $request->variant_name;
+
             foreach ($request->variant_option as $index => $optionName) {
-                $variantId = $request->variant_id[$index] ?? null; 
+                $variantId = $request->variant_id[$index] ?? null;
+                $variantPrice = $request->variant_price[$index] ?? null;
+
+                if (empty($optionName) && empty($variantPrice)) {
+                    continue;
+                }
+
                 $variantData = [
                     'product_id'     => $product->id,
                     'variant_name'   => $variantName,
                     'variant_option' => $optionName,
-                    'variant_price'  => $request->variant_price[$index] ?? null,
+                    'variant_price'  => $variantPrice,
                 ];
 
                 if ($variantId) {
                     $variant = ProductVariant::find($variantId);
-                    $variant->update($variantData);
+
+                    // Only update if data changed
+                    if ($variant && (
+                        $variant->variant_name != $variantData['variant_name'] ||
+                        $variant->variant_option != $variantData['variant_option'] ||
+                        $variant->variant_price != $variantData['variant_price']
+                    )) {
+                        $variant->update($variantData);
+                    }
                 } else {
-                    $variant = ProductVariant::create($variantData);
+                    // Only create if there is meaningful data
+                    if (!empty($variantData['variant_option']) || !empty($variantData['variant_price'])) {
+                        $variant = ProductVariant::create($variantData);
+                    } else {
+                        continue;
+                    }
                 }
 
+                // Handle images
                 if ($request->hasFile("variant_images.$index")) {
                     $imageIds = [];
-
                     foreach ($request->file("variant_images.$index") as $file) {
-                        $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                         $fileSize = $file->getSize();
+                        $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                         $file->move(public_path('uploads/variant_images'), $fileName);
 
                         $upload = Upload::create([
@@ -556,7 +717,7 @@ class ProductController extends Controller
                     }
 
                     $oldImages = $variant->variant_images ? explode(',', $variant->variant_images) : [];
-                    $mergedImages = array_merge($oldImages, $imageIds);
+                    $mergedImages = array_unique(array_merge($oldImages, $imageIds));
 
                     $variant->update([
                         'variant_images' => implode(',', $mergedImages)
@@ -564,6 +725,7 @@ class ProductController extends Controller
                 }
             }
 
+            // Delete variants if requested
             if ($request->has('delete_variant_ids')) {
                 ProductVariant::whereIn('id', $request->delete_variant_ids)->delete();
             }
@@ -609,6 +771,31 @@ class ProductController extends Controller
             return response()->json(['success' => true]);
         }
         return response()->json(['success' => false]);
+    }
+
+    public function removeBottomImage($id)
+    {
+        $image = Upload::find($id);
+        if (!$image) {
+            return response()->json(['success' => false, 'message' => 'Image not found']);
+        }
+        $filePath = public_path('uploads/products/' . $image->file_name);
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+
+        $products = Product::whereRaw('FIND_IN_SET(?, bottom_images)', [$id])->get();
+
+        foreach ($products as $product) {
+            $imageIds = array_filter(explode(',', $product->bottom_images));
+            $imageIds = array_filter($imageIds, function ($imgId) use ($id) {
+                return $imgId != $id;
+            });
+            $product->bottom_images = implode(',', $imageIds);
+            $product->save();
+        }
+        $image->delete();
+        return response()->json(['success' => true]);
     }
 
     public function deleteVariantImage($id)
@@ -664,18 +851,48 @@ class ProductController extends Controller
 
     public function productDetail($id)
     {
-        $categories = Category::with('children')
-            ->whereNull('parent_id')
-            ->orderBy('id', 'ASC')
-            ->get();
-
-        $product = Product::with(['images', 'subcategory', 'brand'])->findOrFail($id);
+        $product = Product::with(['subcategory', 'brand','attributeRelations','variants'])->findOrFail($id);
         $subcategory = $product->subcategory;
-        $category = Category::find($subcategory->parent_id);
+        $category = $subcategory ? Category::find($subcategory->parent_id) : null;
+        // $defaultVariant = $product->variants->sortBy('variant_price')->first();
+        $defaultVariant = $product->attributeRelations->sortBy('price')->first();
+
+        $wishlistItems = Wishlist::where('user_id', auth()->id())->pluck('product_id');
+        $relatedProducts = Product::where('subcategory_id', $product->subcategory_id)
+                ->where('id', '!=', $product->id)
+                ->with(['variants', 'images'])
+                ->take(10)
+                ->get();
 
         return view('landing.product-detail', compact(
-            'product', 'categories', 'subcategory', 'category'
+            'product', 'subcategory', 'category','relatedProducts','defaultVariant','wishlistItems'
         ));
+    }
+
+    public function getAttributeImage($id)
+    {
+        $attr = ProductAttributeRelation::findOrFail($id);
+        $product = $attr->product; 
+        $image = Upload::find($attr->image);
+
+        // GST %
+        $gstPercentage = $product->gst ? (float) str_replace('%', '', $product->gst->gst_percentage) : 0;
+
+        // Price with GST
+        $priceWithGst = $attr->price + ($attr->price * $gstPercentage / 100);
+        $originalPriceWithGst = $attr->original_price + ($attr->original_price * $gstPercentage / 100);
+
+        $discount = 0;
+        if ($attr->original_price > 0) {
+            $discount = round((($attr->original_price - $attr->price) / $attr->original_price) * 100);
+        }
+
+        return response()->json([
+            'price' => $priceWithGst,                     
+            'original_price' => $originalPriceWithGst,    
+            'discount' => $discount,
+            'image' => asset('uploads/products/' . $image->file_name)
+        ]);
     }
 
 }

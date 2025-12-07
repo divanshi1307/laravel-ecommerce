@@ -15,12 +15,21 @@
     <link rel="stylesheet" href="{{ asset('font-awesome/css/font-awesome.min.css') }}" type="text/css" />
 
     <link rel="shortcut icon" href="{{ asset('public/img/e-logo.jpg') }}">
+    
+	
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ asset('js/moment.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/ckeditor/ckeditor4@4.21.0/ckeditor.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Date-Time Picker CSS -->
+    <link rel="stylesheet" href="{{ asset('date-time-picker/bootstrap-datetimepicker.min.css') }}" type="text/css">
+    <!-- Date-Time Picker JS -->
+    <script src="{{ asset('date-time-picker/bootstrap-datetimepicker.min.js') }}"></script>
+	
 
     @stack('styles')
 </head>

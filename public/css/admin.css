@@ -397,7 +397,25 @@ label {
 }
 
 
-.order-status-1{ background:#f3b0b0 !important; }
-.order-status-2{ background:#e8e0ff !important; }
-.order-status-3{ background:#8dff90 !important; }
-.order-status-4{ background:#f00 !important; }
+.order-status-pending {
+	background: #f3b0b0 !important;
+    color: black !important;
+}
+
+.order-status-under_processing {
+    background: #e8e0ff !important;
+    color: black !important;
+}
+
+.order-status-cancelled {
+    background: #f00 !important;
+    color: black !important;
+}
+
+.order-status-complete {
+    background: #8dff90 !important;
+    color: black !important;
+}
+
+
+
