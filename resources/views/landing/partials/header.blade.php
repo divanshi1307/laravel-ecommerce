@@ -56,8 +56,7 @@
                         <ul class="sub-menu">						
                             <li><a href="{{ route('account.dashboard') }}">Dashboard</a></li>
                             <li><a href="{{route('orders.index')}}">Orders</a></li>
-                            <li><a href="account-order-details.html">Orders Details</a></li>
-                            
+                            <li><a href="{{route('account.reviews')}}">Review</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -72,7 +71,7 @@
                         @if(auth()->check())
                             <li class="nav-item dropdown">
                                 <a class="nav-link d-flex align-items-center gap-2"
-                                    href="#" id="userMenu"
+                                    id="userMenu"
                                     data-bs-toggle="dropdown" aria-expanded="false">
                                     <img src="{{ auth()->user()->profile_image ? asset('uploads/profile/' . auth()->user()->profile_image) : 'https://cdn-icons-png.flaticon.com/512/847/847969.png' }}" 
                                         alt="User Avatar" class="rounded-circle" style="width:32px; height:32px; object-fit:cover;">
@@ -90,8 +89,10 @@
                     <li class="nav-item wishlist-link">
                         <a class="nav-link" href="javascript:void(0);" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight">
                             <i class="iconly-Light-Heart2"></i>
+                            <span class="badge badge-circle wishlist-count">{{ $wishlist->count() }}</span>
                         </a>
                     </li>
+
                     <li class="nav-item cart-link">
                         <a href="javascript:void(0);" class="nav-link cart-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight">
                             <i class="iconly-Broken-Buy"></i>

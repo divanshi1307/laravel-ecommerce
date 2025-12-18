@@ -32,7 +32,7 @@
                                         <th>Product</th>
                                         <th></th>
                                         <th>Price</th>
-                                        <th>Stock</th>
+                                        {{-- <th>Stock</th> --}}
                                         <th></th>
                                         <th></th>
                                     </tr>
@@ -52,21 +52,35 @@
                                             <td class="product-item-price">
                                                 @php
                                                     $product = $item->product;
-                                                    $minPrice = ($product->product_type == 'variant')
-                                                        ? $product->variants->min('variant_price')
-                                                        : null;
+                                                    $gstPercentage = 0;
+                                                    if ($product->gst) {
+                                                        $gstPercentage = (float) str_replace('%', '', $product->gst->gst_percentage);
+                                                    }
+
+                                                    // SIMPLE PRODUCT
+                                                    if ($product->product_type == 'simple') {
+                                                        $basePrice = $product->price ?? 0;
+                                                        $finalPrice = $basePrice + ($basePrice * $gstPercentage / 100);
+                                                    }
+
+                                                    // VARIANT OR ADULT PRODUCT
+                                                    elseif ($product->product_type == 'variant' || $product->product_type == 'adult') {
+                                                        $minAttributePrice = $product->attributeRelations->min('price');
+
+                                                        if ($minAttributePrice) {
+                                                            $finalPrice = $minAttributePrice + ($minAttributePrice * $gstPercentage / 100);
+                                                        } else {
+                                                            $finalPrice = 0;
+                                                        }
+                                                    }
                                                 @endphp
 
                                                 <h5 class="price" style="margin:0; font-size:22px; font-weight:600; white-space:nowrap;">
-                                                    @if($product->product_type == 'simple')
-                                                        ₹&nbsp;{{ number_format($product->price, 0) }}
-                                                    @else
-                                                        ₹&nbsp;{{ number_format($minPrice ?? 0, 0) }}
-                                                    @endif
+                                                    ₹ {{ number_format($finalPrice, 0) }}
                                                 </h5>
                                             </td>
-                                            
-                                            <td class="product-item-stock">
+
+                                            {{-- <td class="product-item-stock">
                                                 @if($item->product->product_type === 'simple')
                                                     <span class="{{ $item->product->stock_status ? 'text-success' : 'text-danger' }}">
                                                         {{ $item->product->stock_status ? 'In Stock' : 'Out of Stock' }}
@@ -74,10 +88,51 @@
                                                 @else
                                                     <span class="text-primary">Out of Stock</span>
                                                 @endif
-                                            </td>
+                                            </td> --}}
 
-                                            <!-- Add to Cart -->
-                                            <td class="product-item-totle"><a href="shop-cart.html" class="btn btn-secondary btnhover text-nowrap">Add To Cart</a></td>
+                                            {{-- Show Price --}}
+
+                                            @php
+                                                // GST Percentage
+                                                $gstPercentage = 0;
+                                                if (!empty($product->gst)) {
+                                                    $gstPercentage = (float) str_replace('%', '', $product->gst->gst_percentage);
+                                                }
+
+                                                $defaultImage = ($defaultVariant->variant_images ?? null) ?: ($product->image ?? ($product->images_list->first()->file_name ?? ''));
+
+                                                $basePrice = 0;
+                                                $originalBase = 0; 
+
+                                                if ($product->product_type == 'simple') {
+                                                    $basePrice = $product->price ?? 0;
+                                                    $originalBase = $product->original_price ?? $basePrice;
+
+                                                } elseif ($product->product_type == 'variant' || $product->product_type == 'adult') {
+                                                    $basePrice = $product->attributeRelations->min('price') ?? 0;
+                                                    $originalBase = $product->attributeRelations->min('original_price') ?? $basePrice;
+                                                }
+
+                                                $finalPrice = $basePrice + ($basePrice * $gstPercentage / 100);
+                                            @endphp
+
+                                            <td class="product-item-totle">
+                                                <form action="{{ route('cart.add') }}" method="POST">
+                                                    @csrf
+                                                    
+                                                    <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                                    <input type="hidden" name="variant_id" value="{{ $defaultVariant->id ?? '' }}">
+                                                    <input type="hidden" name="price" value="{{ $finalPrice }}">
+                                                    <input type="hidden" name="original_price" value="{{ $originalBase }}">
+                                                    <input type="hidden" name="discount" value="{{ $defaultVariant->discount ?? 0 }}">
+                                                    <input type="hidden" name="image" value="{{ $defaultImage }}">
+                                                    <input type="hidden" name="source" value="cart-table">
+
+                                                    <button type="submit" class="btn btn-secondary btnhover text-nowrap">
+                                                        Add To Cart
+                                                    </button>
+                                                </form>
+                                            </td>
 
                                             <!-- Remove Button -->
                                             <td class="product-item-close">
@@ -108,66 +163,23 @@
 @section('script')
     <script>
 
-        $(document).ready(function() {
-            $.ajax({
-                url: "{{ route('wishlist.render') }}",
-                type: "GET",
-                success: function(html) {
-                    $("#wishlistArea").html(html);
-                }
-            });
-        });
-
-        $(document).on("click", ".remove-wish", function () {
-            let btn = $(this);
-            let productId = btn.data("id");
-
-            $.ajax({
-                url: "/wishlist/remove/" + productId,
-                type: "POST",
-                data: { _token: "{{ csrf_token() }}" },
-
-                success: function (res) {
-                    if (res.status === "removed") {
-
-                        btn.closest("li").fadeOut(300, function() {
-                            $(this).remove();
-
-                            $(`.dz-wishicon[data-product-id="${productId}"]`).removeClass("active");
-                            setTimeout(() => {
-                                location.reload();
-                            }, 1000);
-
-                        });
-
-                        let count = $("#wishlistArea li").length;
-                        $("#wishlist-count").text(count);
-
-                        if (count === 0) {
-                            $("#wishlistArea").html(`
-                                <li><p class="text-center fs-5 fw-bold">No items in wishlist.</p></li>
-                            `);
-                        }
-
-                        // Flash message
-                        $("#flash-message").html(`
-                            <div class="alert alert-danger">Item removed from wishlist.</div>
+        $(document).ready(function () {
+            $("#offcanvasRight").on("shown.bs.offcanvas", function () {
+                $.ajax({
+                    url: "{{ route('wishlist.render') }}",
+                    type: "GET",
+                    success: function (html) {
+                        $("#wishlistArea").html(html);
+                    },
+                    error: function () {
+                        $("#wishlistArea").html(`
+                            <li><p class="text-center text-danger">Failed to load wishlist.</p></li>
                         `);
-
-                        setTimeout(() => {
-                            $("#flash-message .alert").fadeOut();
-                        }, 2000);
                     }
-                },
-
-                error: function () {
-                    $("#flash-message").html(`
-                        <div class="alert alert-danger">Something went wrong.</div>
-                    `);
-                }
+                });
             });
         });
-
+        
         $(document).on("click", ".remove-wishpage", function () {
             let btn = $(this);
             let productId = btn.data("id");
@@ -208,6 +220,93 @@
                         setTimeout(() => {
                             $("#flash-message .alert").fadeOut();
                         }, 2000);
+                    }
+                },
+
+                error: function () {
+                    $("#flash-message").html(`
+                        <div class="alert alert-danger">Something went wrong.</div>
+                    `);
+                }
+            });
+        });
+
+        $(document).on("click", ".removeCartItem", function () {
+
+            let btn = $(this);
+            let cartId = btn.data("id");
+
+            $.ajax({
+                url: "/cart/remove/" + cartId,
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+
+                success: function (res) {
+                    if (res.status === "removed") {
+
+                        if (res.product_id) {
+                            $(`.addToCartBtn[data-product-id="${res.product_id}"]`)
+                                .removeClass("active in-cart");
+                        }
+
+                        if (res.subtotal !== undefined) {
+                            if (Number(res.subtotal) <= 0 || res.count === 0) {
+
+                                $("#cart-total-section").html(`
+                                    <div class="cart-total text-center">
+                                        <h5 class="mb-0 fw-bold">Your cart is empty.</h5>
+                                    </div>
+                                `);
+
+                                $(".sidebar-cart-list").html(`
+                                    <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
+                                `);
+                                $("#cart-action-buttons").hide();
+                            } else {
+
+                                $("#cart-total-section").html(`
+                                    <div class="cart-total d-flex justify-content-between">
+                                        <h5 class="mb-0">Subtotal:</h5>
+                                        <h5 class="mb-0">₹ ${Number(res.subtotal).toLocaleString()}</h5>
+                                    </div>
+                                `);
+                                $("#cart-action-buttons").show();
+                            }
+                        }
+
+                        if (res.count !== undefined) {
+                            $("#cart-count").text(res.count);
+                            $(".cart-count").text(res.count);
+                        }
+
+                        btn.closest("li").fadeOut(200, function () {
+                            $(this).remove();
+
+                            // If no items left
+                            if ($(".sidebar-cart-list li").length === 0) {
+                                $(".sidebar-cart-list").html(`
+                                    <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
+                                `);
+                            }
+                        });
+
+                        // Remove active state from add-to-cart button (on product detail page)
+                        if (res.product_id) {
+                            $(`.addToCartBtn[data-product-id="${res.product_id}"]`)
+                                .removeClass("in-cart");
+                        }
+
+                        // Flash message
+                        $("#flash-message").html(`
+                            <div class="alert alert-danger">Item removed from cart.</div>
+                        `);
+
+                        setTimeout(() => {
+                            $("#flash-message .alert").fadeOut();
+                        }, 2000);
+                        
                     }
                 },
 

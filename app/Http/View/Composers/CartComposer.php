@@ -22,10 +22,15 @@ class CartComposer
             });
 
         } else {
-            $cartItems = collect();
-            $cartItemsCount = 0;
+            $cartItems = CartItem::whereNull('user_id')
+            ->with('product.attributeRelations', 'product.gst')
+            ->get();
+            $cartItemsCount = $cartItems->count();
+            //$cartItems = collect();
+            // $cartItemsCount = 0;
             $cartTotal = 0;
-            $cartProductIds = [];
+            $cartProductIds = $cartItems->pluck('product_id')->toArray();
+            // $cartProductIds = [];
         }
 
         $view->with([

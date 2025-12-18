@@ -8,7 +8,9 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Models\Setting;
 use App\Models\Order;
+use App\Models\Cms;
 use App\Models\OrderUpdate;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
@@ -242,5 +244,47 @@ class AdminController extends Controller
         return back()->with('status', 'Update sent to customer successfully');
     }
 
+    /////CMS
+    public function addcms(Request $request, $id = null)
+    {
+        if ($request->isMethod('post')) {
+            $request->validate([
+                'title' => 'required'
+            ]);
 
+            if ($id) {
+                $row = Cms::findOrFail($id);
+            } else {
+                $row = new Cms();
+                $row->slug = Str::slug($request->title);
+            }
+
+            $row->title = $request->title;
+            $row->description = $request->description;
+            $row->top = $request->has('top') ? 1 : 0;
+            $row->bottom = $request->has('bottom') ? 1 : 0;
+            $row->meta_title = $request->meta_title;
+            $row->meta_keywords = $request->meta_keywords;
+            $row->meta_desc = $request->meta_desc;
+            $row->save();
+
+            return redirect()->route('cms.list')->with('status', $id ? 'CMS updated successfully' : 'CMS added successfully');
+        }
+        return view('admin.cms.addcms', [
+            'data' => $id ? Cms::findOrFail($id) : null,
+            'id'   => $id
+        ]);
+    }
+
+    public function cms()
+    {
+        $results = Cms::orderBy('id', 'ASC')->paginate(20);
+        return view('admin.cms.cms', compact('results'));
+    }
+
+    public function delete(Request $request)
+    {
+        Cms::whereIn('id', (array) $request->id)->delete();
+        return redirect()->route('cms.list')->with('status', 'CMS deleted successfully');
+    }
 }

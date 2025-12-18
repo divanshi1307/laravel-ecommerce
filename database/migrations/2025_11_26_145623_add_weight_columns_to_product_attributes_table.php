@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::table('product_attributes', function (Blueprint $table) {
             $table->unsignedBigInteger('baby_weight_id')->nullable()->after('attribute_value');
             $table->unsignedBigInteger('age_group_id')->nullable()->after('baby_weight_id');
+            $table->unsignedBigInteger('adult_waist_id')->nullable()->after('age_group_id');
         });
     }
 
@@ -23,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('product_attributes', function (Blueprint $table) {
-            $table->dropColumn(['baby_weight_id', 'age_group_id']);
+            $table->dropColumn(['baby_weight_id', 'age_group_id','adult_waist_id']);
         });
     }
 };

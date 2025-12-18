@@ -124,12 +124,23 @@
                                 Type: {{ ucfirst($product->product_type) }}
                         </td>
 
-                        <td>{{ $product->stock_quantity ?? 'N/A'}}</td>
                         <td>
-                            @if($product->stock_status === 'in_stock')
-                                <span class="badge bg-success">In Stock</span>
+                            @if($product->product_type === 'simple')
+                                {{ $product->stock_quantity }}
                             @else
-                                <span class="badge bg-danger">Out of Stock</span>
+                                <span class="badge bg-primary">Variant Product</span>
+                            @endif
+                        </td>
+
+                        <td>
+                            @if($product->product_type === 'simple')
+                                @if($product->stock_status === 'in_stock')
+                                    <span class="badge bg-success">In Stock</span>
+                                @else
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                @endif
+                            @else
+                                <span class="badge bg-primary">Variant Product</span>
                             @endif
                         </td>
                         <td>
@@ -142,9 +153,8 @@
                         <td class="text-right">
                             <a href="{{ route('products.edit',$product->id) }}" class="btn btn-primary btn-sm mb-1" title="edit"><i class="fa fa-edit"></i></a>
                             <form method="post" action="{{ route('products.destroy',$product->id) }}" onsubmit="return confirm('Are you sure want to delete?');"style="display:inline">
-                                <input type="hidden" name="_token" value="U8RYQ3sykTyo2Jj1wUbsuBusAJVproBooXwsp1zO">                                <input type="hidden" name="table" value="products">
-                                <input type="hidden" name="action" value="products">
-                                <input type="hidden" name="id" value="105">
+                                @csrf
+                                @method('DELETE')
                                 <button type="submit" class="btn btn-danger btn-sm delete mb-1" title="Delete">
                                     <i class="fa fa-trash"></i>
                                 </button>

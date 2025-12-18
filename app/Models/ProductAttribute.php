@@ -16,6 +16,7 @@ class ProductAttribute extends Model
         'attribute_value',
         'baby_weight_id',
         'age_group_id',
+        'adult_waist_id',
         'quantity',
         'status',
     ];

@@ -11,13 +11,30 @@ class CategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
+
+    // public function index(Request $request)
+    // {
+    //     $query = Category::query();
+    //     if ($request->name) {
+    //         $query->where('category_name', 'like', '%' . $request->name . '%');
+    //     }
+    //     $categoryList  = $query->orderBy('id', 'desc')->paginate(10);
+    //     return view('categories.index', compact('categoryList'));
+    // }
     public function index(Request $request)
     {
         $query = Category::query();
+
         if ($request->name) {
             $query->where('category_name', 'like', '%' . $request->name . '%');
         }
-        $categoryList  = $query->orderBy('id', 'desc')->paginate(10);
+        $categoryList = $query
+            ->orderByRaw('CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END') 
+            ->orderBy('parent_id', 'ASC')                                 
+            ->orderBy('sort_order', 'ASC')                                
+            ->orderBy('category_name', 'ASC')                             
+            ->paginate(10);
+
         return view('categories.index', compact('categoryList'));
     }
 
@@ -38,6 +55,7 @@ class CategoryController extends Controller
         $validator = Validator::make($request->all(), [
             'parent_id' => 'nullable|exists:categories,id',
             'category_name' => 'required|string|max:255',
+            'slug' => 'required|unique:categories,slug',
             'description' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'banner' => 'nullable|image|mimes:jpg|max:2048',
@@ -56,6 +74,7 @@ class CategoryController extends Controller
         
         $category = new Category();
         $category->category_name = $request->category_name;
+        $category->slug = $request->slug;
         $category->parent_id = $request->parent_id;
         $category->user_id = auth()->id();
         $category->description = $request->description;
@@ -126,6 +145,7 @@ class CategoryController extends Controller
         // $request->validate([
             'parent_id' => 'nullable|exists:categories,id|not_in:' . $category->id,
             'category_name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:categories,slug,' . $category->id,
             'description' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'banner' => 'nullable|image|mimes:jpg|max:2048',

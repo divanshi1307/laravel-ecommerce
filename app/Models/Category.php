@@ -14,6 +14,7 @@ class Category extends Model
         'parent_id',
         'user_id',
         'category_name',
+        'slug',
         'description',
         'sort_order',
         'is_active',
@@ -35,7 +36,7 @@ class Category extends Model
     public function children()
     {
         return $this->hasMany(Category::class, 'parent_id')
-            ->orderBy('id', 'ASC');;
+            ->orderBy('sort_order', 'ASC');;
     }
 
 }

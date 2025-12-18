@@ -20,8 +20,9 @@ return new class extends Migration
             $table->unsignedBigInteger('gst_id')->nullable();
 
             $table->string('title');
-            $table->string('product_item_code')->nullable();
-            $table->enum('product_type', ['simple', 'variant'])->default('simple');
+            $table->string('slug')->unique();
+            $table->string('product_item_code')->unique();
+            $table->enum('product_type', ['simple', 'variant','adult'])->default('simple');
             $table->longText('description')->nullable();
             $table->longText('specifications')->nullable(); 
             $table->string('images')->nullable();
@@ -36,6 +37,7 @@ return new class extends Migration
             $table->text('meta_description')->nullable();
             $table->string('seo_image')->nullable();
             $table->string('meta_tags')->nullable();
+            $table->longText('meta_snippet')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

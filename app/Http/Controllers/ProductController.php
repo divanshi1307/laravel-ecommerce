@@ -12,7 +12,9 @@ use App\Models\Upload;
 use App\Models\GstModule;
 use App\Models\AgeGroup;
 use App\Models\BabyWeight;
-use App\Models\WishList;
+use App\Models\AdultWaist;
+use App\Models\Wishlist;
+use App\Models\ProductReview;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -52,7 +54,8 @@ class ProductController extends Controller
         $gst = GstModule::all();
         $baby_weight = BabyWeight::all();
         $age_group = AgeGroup::all();
-        return view('products.create', compact('categories','brands','subcategories','gst','baby_weight','age_group'));
+        $adult_waist = AdultWaist::all();
+        return view('products.create', compact('categories','brands','subcategories','gst','baby_weight','age_group','adult_waist'));
     }
 
     public function getSubCategories(Request $request)
@@ -66,6 +69,7 @@ class ProductController extends Controller
         $validator = Validator::make($request->all(), [
             'category_id' => 'required|exists:categories,id',
             'title' => 'required',
+            'slug' => 'required|unique:products,slug',
             'product_type' => 'required',
             'price'              => 'required_if:product_type,simple|numeric|nullable',
             'images' => 'required|array', 
@@ -76,6 +80,7 @@ class ProductController extends Controller
             'attribute_name.*'  => 'required_if:product_type,variant|max:255',
             'attribute_value.*' => 'required_if:product_type,variant|max:255',
             'stock_quantity' => 'required_if:product_type,simple|numeric|nullable',
+            'manufacture_date' => 'nullable|date',
         ], [
             'attribute_name.*.required_if'   => 'Please enter the attribute name',
             'attribute_value.*.required_if'  => 'Please enter at least one attribute value ',
@@ -85,7 +90,23 @@ class ProductController extends Controller
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-        
+
+        $prefix = 'DIM-';
+        $lastCode = Product::where('product_item_code', 'like', $prefix . '%')
+            ->orderBy('id', 'desc')
+            ->value('product_item_code');
+
+        if (!$lastCode) {
+            $newCode = $prefix . '99';
+        } else {
+            $number = (int) str_replace($prefix, '', $lastCode);
+            if ($number === 99) {
+                $newCode = $prefix . '9901';
+            } else {
+                $newCode = $prefix . ($number + 1);
+            }
+        }
+
         $product = Product::create([
             'user_id'            => auth()->id(),
             'category_id'        => $request->category_id,
@@ -93,7 +114,8 @@ class ProductController extends Controller
             'brand_id'           => $request->brand_id,
             'gst_id'             => $request->gst_id,
             'title'              => $request->title,
-            'product_item_code'  => $request->product_item_code,
+            'slug'               => $request->slug,   
+            'product_item_code'  => $newCode,
             'product_type'       => $request->product_type,
             'description'        => $request->description, 
             'highlights'         => $request->highlights,
@@ -102,7 +124,10 @@ class ProductController extends Controller
             'meta_title'         => $request->meta_title,
             'meta_description'   => $request->meta_description,
             'meta_tags'          => $request->meta_tags,
+            'meta_snippet'       => $request->meta_snippet,
             'specifications'     => json_encode($request->specifications),
+            'tags'               => $request->tags,
+            'manufacture_date'   => $request->manufacture_date,
         ]);
 
         if ($request->product_type === 'simple') {
@@ -226,6 +251,7 @@ class ProductController extends Controller
                         'attribute_value' => $value,
                         'baby_weight_id'  => $request->baby_weight_id[$i][$j] ?? null,
                         'age_group_id'    => $request->age_group_id[$i][$j] ?? null,
+                        'adult_waist_id'    => $request->adult_waist_id[$i][$j] ?? null,
                     ]);
 
                     // Build array for combination generation
@@ -236,9 +262,8 @@ class ProductController extends Controller
             // -------------------------------------------------
             // CREATE VARIANT COMBINATIONS
             // -------------------------------------------------
-            if ($product->product_type === 'variant' && !empty($attributes)) {
+            if ($product->product_type === 'variant' || $product->product_type === 'adult' && !empty($attributes)) {
 
-                // Delete old combinations
                 $product->attributeRelations()->delete();
 
                 // Generate all combinations
@@ -340,9 +365,10 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('success','Product Added Successfully');
     }
 
-    public function show()
+    public function show($slug)
     {
-        //
+        $product = Product::where('slug', $slug)->firstOrFail();
+        return view('product.show', compact('product'));
     }
 
     public function edit($id)
@@ -373,6 +399,7 @@ class ProductController extends Controller
         $gst = GstModule::all();
         $baby_weight = BabyWeight::all();
         $age_group = AgeGroup::all();
+        $adult_waist = AdultWaist::all();
 
         $attributes = [];
 
@@ -389,12 +416,14 @@ class ProductController extends Controller
             $attributes[$attrName]["rows"][] = [
                 "baby_weight_id"  => $attr->baby_weight_id,   
                 "age_group_id"    => $attr->age_group_id ,
+                "adult_waist_id"    => $attr->adult_waist_id ,
                 "attribute_value" => $attr->attribute_value
             ];
         }
 
         $attributes = array_values($attributes);
-        return view('products.edit', compact('product', 'categories', 'subcategories', 'brands', 'gst','specifications','attributes','baby_weight','age_group'));
+
+        return view('products.edit', compact('product', 'categories', 'subcategories', 'brands', 'gst','specifications','attributes','baby_weight','age_group','adult_waist'));
     }
 
     public function update(Request $request, $id)
@@ -403,6 +432,7 @@ class ProductController extends Controller
         $validator = Validator::make($request->all(), [
             'category_id' => 'required|exists:categories,id',
             'title' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:products,slug,' . $product->id,
             'price' => 'required_if:product_type,simple|nullable',
             'special_price' => 'nullable|numeric',
             'images'        => ($product->images) ? 'nullable|array' : 'required|array', 
@@ -413,6 +443,7 @@ class ProductController extends Controller
             'attribute_name.*'  => 'required_if:product_type,variant|max:255',
             'attribute_value.*' => 'required_if:product_type,variant|max:255',
             'stock_quantity' => 'required_if:product_type,simple|numeric|nullable',
+            'manufacture_date' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -439,16 +470,20 @@ class ProductController extends Controller
             'brand_id' => $request->brand_id,
             'gst_id' => $request->gst_id,
             'title' => $request->title,
+            'slug' => $request->slug, 
             'product_type' => $request->product_type,
-            'product_item_code'  => $request->product_item_code,
+            // 'product_item_code'  => $request->product_item_code,
             'description' => $request->description,
             'highlights' => $request->highlights,
             'sort_no' => $request->sort_no ?? 0,
             'is_active' => $request->is_active ?? 1,
             'specifications' => $specifications,
+            'tags' => $request->tags,
+            'manufacture_date'   => $request->manufacture_date,
             'meta_title' => $request->meta_title,
             'meta_description' => $request->meta_description,
             'meta_tags' => $request->meta_tags,
+            'meta_snippet' => $request->meta_snippet,
         ]);
 
          /*
@@ -565,12 +600,14 @@ class ProductController extends Controller
                 $rowValues     = $request->attribute_value[$index] ?? [];
                 $rowBabyWeight = $request->baby_weight_id[$index] ?? [];
                 $rowAgeGroups  = $request->age_group_id[$index] ?? [];
+                $rowAdultWaist  = $request->adult_waist_id[$index] ?? [];
 
                 foreach ($rowValues as $rowIndex => $value) {
                     if (empty($value)) continue;
 
                     $babyWeightId = $rowBabyWeight[$rowIndex] ?? null;
                     $ageGroupId   = $rowAgeGroups[$rowIndex] ?? null;
+                    $adultWaistId = $rowAdultWaist[$rowIndex] ?? null;
 
                     // Save attribute
                     ProductAttribute::create([
@@ -579,6 +616,7 @@ class ProductController extends Controller
                         'attribute_value' => $value,
                         'baby_weight_id'  => $babyWeightId,
                         'age_group_id'    => $ageGroupId,
+                        'adult_waist_id'  => $adultWaistId,
                     ]);
 
                     // Save for combination generation
@@ -586,15 +624,16 @@ class ProductController extends Controller
                         'value'          => $value,
                         'baby_weight_id' => $babyWeightId,
                         'age_group_id'   => $ageGroupId,
+                        'adult_waist_id' => $adultWaistId,
                     ];
                 }
             }
         }
 
         // ---------------------------------------------------
-        // CREATE VARIANT COMBINATIONS
+        // UPDATE VARIANT COMBINATIONS
         // ---------------------------------------------------
-        if ($product->product_type === 'variant' && !empty($attributes)) {
+        if ($product->product_type === 'variant' || $product->product_type === 'adult' && !empty($attributes)) {
 
             // Delete old combinations
             $product->attributeRelations()->delete();
@@ -609,7 +648,6 @@ class ProductController extends Controller
 
             // Save each combination
             foreach ($combinations as $i => $combo) {
-
                 $valueStr = implode(' - ', array_map(fn($item) => $item['value'], $combo));
 
                 $relation = $product->attributeRelations()->create([
@@ -849,24 +887,27 @@ class ProductController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function productDetail($id)
+    public function productDetail($slug)
     {
-        $product = Product::with(['subcategory', 'brand','attributeRelations','variants'])->findOrFail($id);
+        $product = Product::with(['subcategory', 'brand','attributeRelations','variants'])->where('slug', $slug)->firstOrFail();;
         $subcategory = $product->subcategory;
         $category = $subcategory ? Category::find($subcategory->parent_id) : null;
         // $defaultVariant = $product->variants->sortBy('variant_price')->first();
         $defaultVariant = $product->attributeRelations->sortBy('price')->first();
 
         $wishlistItems = Wishlist::where('user_id', auth()->id())->pluck('product_id');
-        $relatedProducts = Product::where('subcategory_id', $product->subcategory_id)
-                ->where('id', '!=', $product->id)
-                ->with(['variants', 'images'])
-                ->take(10)
-                ->get();
+        $relatedProducts = Product::where('subcategory_id', $product->subcategory_id)->where('id', '!=', $product->id)->with(['variants', 'images'])->take(10)->get();
 
-        return view('landing.product-detail', compact(
-            'product', 'subcategory', 'category','relatedProducts','defaultVariant','wishlistItems'
-        ));
+        $reviews = ProductReview::where('product_id', $product->id)->where('status', 1)->with('user')->get();
+        
+        $alreadyReviewed = false;
+        if (auth()->check()) {
+            $alreadyReviewed = ProductReview::where('product_id', $product->id)
+                ->where('user_id', auth()->id())
+                ->exists();
+        }
+
+        return view('landing.product-detail', compact('product', 'subcategory', 'category','relatedProducts','defaultVariant','wishlistItems','reviews','alreadyReviewed'));
     }
 
     public function getAttributeImage($id)
@@ -888,12 +929,15 @@ class ProductController extends Controller
         }
 
         return response()->json([
+            'id' => $attr->id, 
             'price' => $priceWithGst,                     
             'original_price' => $originalPriceWithGst,    
             'discount' => $discount,
-            'image' => asset('uploads/products/' . $image->file_name)
+            'image' => asset('uploads/products/' . $image->file_name),
+            'stock' => $attr->quantity,
         ]);
     }
+
 
 }
 

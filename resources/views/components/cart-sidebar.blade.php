@@ -87,11 +87,13 @@
             </div>
         </div>
     @endif
-
-    <div class="mt-auto">
-        <a href="{{route('checkout')}}" class="btn btn-outline-secondary btn-block m-b20">Checkout</a>	
-        <a href="{{ route('cart.index') }}" class="btn btn-secondary btn-block">View Cart</a>	
-    </div>	
+    
+    @if($cartItems->count() > 0 && $subtotal > 0)
+        <div class="mt-auto" id="cart-action-buttons">
+            <a href="{{route('checkout')}}" class="btn btn-outline-secondary btn-block m-b20">Checkout</a>	
+            <a href="{{ route('cart.index') }}" class="btn btn-secondary btn-block">View Cart</a>	
+        </div>	
+    @endif
 </div>
 
 

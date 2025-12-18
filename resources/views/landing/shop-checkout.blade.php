@@ -86,6 +86,18 @@
                                 </div>
                             </div>
 
+                            <!-- State -->
+                            <div class="m-b25">
+                                <label class="label-title">State</label>
+
+                                @if($location)
+                                    <input type="hidden" name="state" value="{{ $location->state }}">
+                                    <input type="text" class="form-control" value="{{ $location->state }}" disabled>
+                                @else
+                                    <input type="text" name="state" class="form-control" value="">
+                                @endif
+                            </div>
+
                             <!-- City -->
                             <div class="m-b25">
                                 <label class="label-title">Town / City</label>
@@ -102,13 +114,13 @@
 
                             <!-- State -->
                             <div class="m-b25">
-                                <label class="label-title">State</label>
+                                <label class="label-title">Area</label>
 
                                 @if($location)
-                                    <input type="hidden" name="state" value="{{ $location->state }}">
-                                    <input type="text" class="form-control" value="{{ $location->state }}" disabled>
+                                    <input type="hidden" name="area" value="{{ $location->area }}">
+                                    <input type="text" class="form-control" value="{{ $location->area }}" disabled>
                                 @else
-                                    <input type="text" name="state" class="form-control" value="">
+                                    <input type="text" name="area" class="form-control" value="">
                                 @endif
                             </div>
 
@@ -184,38 +196,41 @@
                     </div>
 
                     <!-- Right Section -->
+
                     <div class="col-xl-4 side-bar">
                         <h4 class="title m-b15">Your Order</h4>
 
                         <div class="order-detail sticky-top">
 
+                            {{-- CART ITEMS --}}
                             @forelse($cartItems as $item)
                                 <div class="cart-item style-1">
                                     <div class="dz-media">
-                                            <img src="{{ $item->product && $item->product->first_image_url ? asset('uploads/products/' . $item->product->first_image_url) : asset('images/default-product.png') }}" alt="{{ $item->product->title ?? 'Product Image' }}" >
+                                        <img src="{{ $item->product && $item->product->first_image_url 
+                                            ? asset('uploads/products/' . $item->product->first_image_url) 
+                                            : asset('images/default-product.png') }}"
+                                            alt="{{ $item->product->title ?? 'Product Image' }}">
                                     </div>
+
                                     <div class="dz-content">
                                         <h6 class="title mb-0">{{ $item->product->title }}</h6>
 
                                         @php
                                             $product = $item->product;
-                                            $gstPercentage = 0;
-                                            if ($product->gst) {
-                                                $gstPercentage = (float) str_replace('%', '', $product->gst->gst_percentage);
-                                            }
+                                            $gstPercentage = $product->gst ? (float) str_replace('%', '', $product->gst->gst_percentage) : 0;
 
                                             if ($product->product_type == 'simple') {
                                                 $basePrice = $product->price ?? 0;
-                                                $PriceWithGst = $basePrice + ($basePrice * $gstPercentage / 100);
-
+                                                $priceWithGst = $basePrice + ($basePrice * $gstPercentage / 100);
+                                                $finalPrice = $priceWithGst * $item->quantity;
                                             } else {
-                                                $PriceWithGst = $item->price;
+                                                $priceWithGst = $item->price;
+                                                $finalPrice = $priceWithGst * $item->quantity;
                                             }
-
                                         @endphp
 
                                         <span class="price">
-                                            ₹{{ number_format($PriceWithGst, 0) }}
+                                            ₹{{ number_format($finalPrice, 0) }}
                                         </span>
                                     </div>
                                 </div>
@@ -223,63 +238,90 @@
                                 <p>No items in cart.</p>
                             @endforelse
 
+                            {{-- --------------------------
+                                PRICE CALCULATION
+                            --------------------------- --}}
                             @php
-                                $grandTotal = 0;
+                                $subtotal = 0;
+
+                                foreach ($cartItems as $item) {
+                                    $basePrice = $item->price;
+                                    $subtotal += $basePrice * $item->quantity;
+                                }
+
+                                $couponCode = session('coupon_code');
+                                $discountAmount = session('discount') ?? 0;
+
+                                $finalTotal = $subtotal + $shippingCharge - $discountAmount;
+                                if ($finalTotal < 0) $finalTotal = 0;
                             @endphp
 
-                            @foreach($cartItems as $item)
-                                @php
-                                    $product = $item->product;
-                                    // ---------- PRICE LOGIC ----------
-                                    if ($product->product_type == 'simple') {
-                                        $basePrice = $item->price;
-                                        $baseOriginal = $item->original_price;
-                                    } else {
-                                        $basePrice = $item->price ?? 0;
-                                        $baseOriginal = $item->original_price ?? null;
-                                    }
-                                    $subtotal = $basePrice * $item->quantity;
-                                    $grandTotal += $subtotal;
-
-                                @endphp
-                            @endforeach
-
+                            {{-- --------------------------
+                                TOTAL SECTION
+                            --------------------------- --}}
                             <table>
                                 <tbody>
+                                    <tr>
+                                        <td>Subtotal</td>
+                                        <td class="price">₹{{ number_format($subtotal, 0) }}</td>
+                                    </tr>
+                                    {{-- If coupon applied --}}
+                                    @if($couponCode)
+                                        <tr>
+                                            <td><strong>Coupon ({{ $couponCode }})</strong></td>
+                                            <td class="price text-success">- ₹{{ number_format($discountAmount, 0) }}</td>
+                                        </tr>
+                                    @endif
+
+                                    <tr>
+                                        <td>Shipping Charge</td>
+                                        <td class="price text-success">₹{{ number_format($shippingCharge, 2) }}</td>
+                                    </tr>
+
                                     <tr class="total">
-                                        <td>Total</td>
-                                        <td class="price">₹{{ number_format($grandTotal, 0) }}</td>
+                                        <td><strong>Total</strong></td>
+                                        <td class="price">₹{{ number_format($finalTotal, 0) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
-
+                            {{-- --------------------------
+                                PAYMENT METHODS
+                            --------------------------- --}}
                             <div class="accordion dz-accordion accordion-sm" id="accordionFaq1">
+                                
+                                {{-- Bank Transfer --}}
                                 <div class="accordion-item">
                                     <div class="accordion-header" id="heading1">
-                                        <div class="accordion-button collapsed custom-control custom-checkbox border-0" data-bs-toggle="collapse" data-bs-target="#collapse1" role="navigation"  aria-expanded="true" aria-controls="collapse1">
-                                            <input class="form-check-input radio payment-radio" type="radio" name="payment_method" value="bank_transfer" id="flexRadioDefault3">
-                                            <label class="form-check-label" for="flexRadioDefault3">
+                                        <div class="accordion-button collapsed custom-control custom-checkbox border-0"
+                                            data-bs-toggle="collapse" data-bs-target="#collapse1" aria-expanded="true">
+
+                                            <input class="form-check-input radio payment-radio"
+                                                type="radio" name="payment_method" value="bank_transfer" id="pm_bank">
+
+                                            <label class="form-check-label" for="pm_bank">
                                                 Direct bank transfer
                                             </label>
                                         </div>
                                     </div>
-                                    <div id="collapse1" class="accordion-collapse collapse show" aria-labelledby="heading1" data-bs-parent="#accordionFaq1">
+
+                                    <div id="collapse1" class="accordion-collapse collapse show">
                                         <div class="accordion-body">
-                                            <p class="m-b0">Make your payment directly into our bank account. Please use your Order ID as the payment reference. Your order will not be shipped until the funds have cleared in our account.</p>
+                                            Make your payment directly into our bank account.
                                         </div>
                                     </div>
                                 </div>
+
+                                {{-- Cash on Delivery --}}
                                 <div class="accordion-item">
                                     <div class="accordion-header" id="heading2">
-                                        <div class="accordion-button collapsed custom-control custom-checkbox border-0" 
-                                            data-bs-toggle="collapse" data-bs-target="#collapse2" role="navigation" 
-                                            aria-expanded="true" aria-controls="collapse2">
+                                        <div class="accordion-button collapsed custom-control custom-checkbox border-0"
+                                            data-bs-toggle="collapse" data-bs-target="#collapse2">
 
-                                            <input class="form-check-input radio payment-radio" type="radio" 
-                                                name="payment_method" value="cod" id="payment_cod" 
+                                            <input class="form-check-input radio payment-radio"
+                                                type="radio" name="payment_method" value="cod" id="pm_cod"
                                                 {{ old('payment_method') == 'cod' ? 'checked' : '' }}>
 
-                                            <label class="form-check-label" for="payment_cod">
+                                            <label class="form-check-label" for="pm_cod">
                                                 Cash on delivery
                                             </label>
                                         </div>
@@ -289,39 +331,45 @@
                                         <div class="text-danger ps-3 mt-1">{{ $message }}</div>
                                     @enderror
 
-                                    <div id="collapse2" class="accordion-collapse collapse" aria-labelledby="heading2" data-bs-parent="#accordionFaq1">
+                                    <div id="collapse2" class="accordion-collapse collapse">
                                         <div class="accordion-body">
-                                            <p class="m-b0">Make your payment directly into our bank account. Please use your Order ID as the payment reference.</p>
+                                            Your order will be paid in cash upon delivery.
                                         </div>
                                     </div>
                                 </div>
 
+                                {{-- PayPal --}}
                                 <div class="accordion-item">
                                     <div class="accordion-header" id="heading3">
-                                        <div class="accordion-button collapsed custom-control custom-checkbox border-0" data-bs-toggle="collapse" data-bs-target="#collapse3" role="navigation" aria-expanded="true" aria-controls="collapse3">
-                                            <input class="form-check-input radio payment-radio" type="radio" name="payment_method" value="paypal" id="flexRadioDefault4">
-                                            <label class="form-check-label" for="flexRadioDefault4">
-                                                Paypal
-                                            </label>
-                                            <img src="images/shop/payment.jpg" alt="/">
-                                            <a href="javascript:void(0);">What is PayPal?</a>
-                                        </div>
-                                    </div>
-                                    <div id="collapse3" class="accordion-collapse collapse" aria-labelledby="heading3" data-bs-parent="#accordionFaq1">
-                                        <div class="accordion-body">
-                                            <p class="m-b0">Make your payment directly into our bank account. Please use your Order ID as the payment reference. Your order will not be shipped until the funds have cleared in our account.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                        <div class="accordion-button collapsed custom-control custom-checkbox border-0"
+                                            data-bs-toggle="collapse" data-bs-target="#collapse3">
 
-                            <p class="text">Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our <a href="javascript:void(0);">privacy policy.</a></p>
-                            <div class="form-group">
-                                <div class="custom-control custom-checkbox d-flex m-b15">
-                                    <input type="checkbox" class="form-check-input" id="basic_checkbox_3">
-                                    <label class="form-check-label" for="basic_checkbox_3">I have read and agree to the website terms and conditions </label>
+                                            <input class="form-check-input radio payment-radio"
+                                                type="radio" name="payment_method" value="paypal" id="pm_paypal">
+
+                                            <label class="form-check-label" for="pm_paypal">Paypal</label>
+                                            <img src="images/shop/payment.jpg" alt="">
+                                        </div>
+                                    </div>
+
+                                    <div id="collapse3" class="accordion-collapse collapse">
+                                        <div class="accordion-body">
+                                            Pay securely with PayPal.
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+                            <p class="text">
+                                Your personal data will be used to process your order and support your experience.
+                            </p>
+                            {{-- <div class="form-group">
+                                <div class="custom-control custom-checkbox d-flex m-b15">
+                                    <input type="checkbox" class="form-check-input" id="terms_check">
+                                    <label class="form-check-label" for="terms_check">
+                                        I agree to the website terms and conditions
+                                    </label>
+                                </div>
+                            </div> --}}
                         </div>
                     </div>
                 </div>
@@ -334,17 +382,111 @@
 @section('script')
     <script>
         $(document).ready(function () {
-            $.ajax({
-                url: "{{ route('wishlist.render') }}",
-                type: "GET",
-                success: function (html) {
-                    $("#wishlistArea").html(html);
-                }
+            $("#offcanvasRight").on("shown.bs.offcanvas", function () {
+                $.ajax({
+                    url: "{{ route('wishlist.render') }}",
+                    type: "GET",
+                    success: function (html) {
+                        $("#wishlistArea").html(html);
+                    },
+                    error: function () {
+                        $("#wishlistArea").html(`
+                            <li><p class="text-center text-danger">Failed to load wishlist.</p></li>
+                        `);
+                    }
+                });
             });
 
             $(document).on("change", ".payment-radio", function () {
                 let selected = $(this).val();
                 $("#payment_method_input").val(selected);
+            });
+
+            //// REMOVE CART FROM SIDEBAR
+            $(document).on("click", ".removeCartItem", function () {
+
+                let btn = $(this);
+                let cartId = btn.data("id");
+
+                $.ajax({
+                    url: "/cart/remove/" + cartId,
+                    type: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}"
+                    },
+
+                    success: function (res) {
+                        if (res.status === "removed") {
+
+                            if (res.product_id) {
+                                $(`.addToCartBtn[data-product-id="${res.product_id}"]`)
+                                    .removeClass("active in-cart");
+                            }
+
+                            if (res.subtotal !== undefined) {
+                                if (Number(res.subtotal) <= 0 || res.count === 0) {
+
+                                    $("#cart-total-section").html(`
+                                        <div class="cart-total text-center">
+                                            <h5 class="mb-0 fw-bold">Your cart is empty.</h5>
+                                        </div>
+                                    `);
+
+                                    $(".sidebar-cart-list").html(`
+                                        <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
+                                    `);
+                                    $("#cart-action-buttons").hide();
+                                } else {
+
+                                    $("#cart-total-section").html(`
+                                        <div class="cart-total d-flex justify-content-between">
+                                            <h5 class="mb-0">Subtotal:</h5>
+                                            <h5 class="mb-0">₹ ${Number(res.subtotal).toLocaleString()}</h5>
+                                        </div>
+                                    `);
+                                    $("#cart-action-buttons").show();
+                                }
+                            }
+
+                            if (res.count !== undefined) {
+                                $("#cart-count").text(res.count);
+                                $(".cart-count").text(res.count);
+                            }
+                            
+                            btn.closest("li").fadeOut(200, function () {
+                                $(this).remove();
+
+                                if ($(".sidebar-cart-list li").length === 0) {
+                                    $(".sidebar-cart-list").html(`
+                                        <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
+                                    `);
+                                }
+                            });
+
+                            // Remove active state from add-to-cart button (on product detail page)
+                            if (res.product_id) {
+                                $(`.addToCartBtn[data-product-id="${res.product_id}"]`)
+                                    .removeClass("in-cart");
+                            }
+
+                            // Flash message
+                            $("#flash-message").html(`
+                                <div class="alert alert-danger">Item removed from cart.</div>
+                            `);
+
+                            setTimeout(() => {
+                                $("#flash-message .alert").fadeOut();
+                            }, 2000);
+                            
+                        }
+                    },
+
+                    error: function () {
+                        $("#flash-message").html(`
+                            <div class="alert alert-danger">Something went wrong.</div>
+                        `);
+                    }
+                });
             });
         });
     </script>

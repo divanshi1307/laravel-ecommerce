@@ -15,5 +15,9 @@ class AgeGroup extends Model
     {
         return 'slug';
     }
+
+    public function productAttributes() {
+        return $this->hasMany(ProductAttribute::class, 'age_group_id');
+    }
 }
 

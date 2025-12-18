@@ -20,6 +20,8 @@ use App\Http\Controllers\AgeGroupController;
 use App\Http\Controllers\BabyWeightController;
 use App\Http\Controllers\GstController;
 use App\Http\Controllers\AdultWaistController;
+use App\Http\Controllers\ProductReviewController;
+use App\Http\Controllers\CouponController;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -78,6 +80,22 @@ Route::prefix('admin')->group(function(){
     Route::post('updateOrderStatus', [AdminController::class, 'updateOrderStatus'])->middleware([AdminAuthenticate::class]);
     Route::post('orderupdate', [AdminController::class, 'orderupdate'])->middleware([AdminAuthenticate::class]);
 
+    // Add or Edit CMS (GET + POST)
+    Route::match(['get', 'post'], 'addcms/{id?}', [AdminController::class, 'addcms'])->middleware([AdminAuthenticate::class])->name('cms.add');
+    Route::get('cms', [AdminController::class, 'cms'])->middleware([AdminAuthenticate::class])->name('cms.list');
+    Route::post('cms/delete', [AdminController::class, 'delete'])->middleware([AdminAuthenticate::class])->name('cms.delete');
+
+   // Add or Edit coupon (GET + POST)
+    Route::match(['get', 'post'], 'addcoupon/{id?}', [CouponController::class, 'addcoupon'])->middleware([AdminAuthenticate::class])->name('coupon.add');
+    Route::get('coupons', [CouponController::class, 'coupons'])->middleware([AdminAuthenticate::class])->name('coupon.list');
+    Route::post('coupons/delete', [CouponController::class, 'delete'])->middleware([AdminAuthenticate::class])->name('coupon.delete');
+
+
+    Route::match(['get', 'post'], 'add_product_specific_coupon/{id?}', [CouponController::class, 'add_product_specific_coupon'])->middleware([AdminAuthenticate::class])->name('coupon.add.product.specific.coupon');
+
+    Route::get('product_specific_coupons', [CouponController::class, 'product_specific_coupons'])->middleware([AdminAuthenticate::class])->name('product.specific.coupon.list');
+    Route::post('product_specific_coupons/delete', [CouponController::class, 'ProductSpecificDelete'])->middleware([AdminAuthenticate::class])->name('product.specific.coupon.delete');
+
     // GROUPS
     Route::resource('age-groups', AgeGroupController::class);
     Route::resource('baby-weight', BabyWeightController::class);
@@ -109,6 +127,8 @@ Route::post('/register', [AuthController::class, 'register'])->name('register.st
 // Login
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login.form');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::get('/guest-login', [AuthController::class, 'guestLogin'])->name('guest.login');
+
 
 // Verify OTP
 Route::get('/verify-otp', [AuthController::class, 'verifyOtpForm'])->name('otp.verify.page');
@@ -130,10 +150,12 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/search-products', [HomeController::class, 'search'])->name('products.search');
 // Show subcategory page
-Route::get('/subcategory/{id}', [HomeController::class, 'subcategoryProducts'])->name('subcategory.products');
+Route::get('/subcategory/{slug}', [HomeController::class, 'subcategoryProducts'])->name('subcategory.products');
+//// Show Products Related Brand
+Route::get('/brand/{slug}', [HomeController::class, 'brandProducts'])->name('brand.products');
 
 // PRODUCT DETAILS PAGE
-Route::get('/product/{id}', [ProductController::class, 'productDetail'])->name('product.show');
+Route::get('/product/{slug}', [ProductController::class, 'productDetail'])->name('product.show');
 Route::get('/get-attribute-image/{id}', [ProductController::class, 'getAttributeImage']);
 
 // WISHLIST PAGE
@@ -142,34 +164,35 @@ Route::middleware('auth')->group(function () {
     Route::get('/wishlist/render', [WishlistController::class, 'render'])->name('wishlist.render');
     Route::post('/wishlist/remove/{product}', [WishlistController::class, 'remove'])->name('wishlist.remove');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+
 });
 
 //////// CART PAGE
+
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart/add', [CartController::class, 'addToCart'])->name('cart.add');
+Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
+Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
+Route::post('/cart/apply-coupon', [CartController::class, 'applyCoupon'])->name('cart.applyCoupon');
+
 Route::middleware('auth')->group(function () {
-    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-    Route::post('/cart/add', [CartController::class, 'addToCart'])->name('cart.add');
-    Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
-    Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
     Route::get('/order-success/{id}', [CheckoutController::class, 'orderSuccess'])->name('order.success');
 });
 
-//////// ORDER PAGE
-Route::get('/orders', [OrderController::class, 'index'])->name('orders.index')->middleware('auth');
+//////// PRODUCT REVIEW
+Route::post('/product/{product}/review', [ProductReviewController::class, 'store'])->name('product.review.store');
 
-//////// DASHBOARD PAGE
+//////// MY ACCOUNT PAGE
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [AccountController::class, 'dashboard'])->name('account.dashboard');
+    Route::get('/account/profile', [AccountController::class, 'profile'])->name('account.profile');
+    Route::post('/account/profile/update', [AccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/view/{id}', [OrderController::class, 'vieworder'])->name('orders.view');
+    Route::get('/account/reviews', [AccountController::class, 'reviews'])->name('account.reviews');
 });
-
-// Profile Page
-Route::get('/account/profile', [AccountController::class, 'profile'])->name('account.profile')->middleware('auth');
-
-// Update Profile
-Route::get('/account/profile', [AccountController::class, 'profile'])->name('account.profile')->middleware('auth');
-Route::post('/account/profile/update', [AccountController::class, 'updateProfile'])->name('account.profile.update')->middleware('auth');
-
 
 
 

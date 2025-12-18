@@ -52,7 +52,7 @@
                     <div class="w-100 mb-3">
 
                         {{-- PRODUCT IMAGE --}}
-                        <img src="{{ $item->product->first_image_url ? asset('uploads/products/'.$item->product->first_image_url) : asset('img/placeholder.jpg') }}" class="rounded box-shadow float-left mr-3 mb-3" width="70">
+                        <img src="{{ asset('uploads/products/' . $item->product->display_image) }}" alt="{{ $item->product->title }}" class="box-shadow float-left mr-3 mb-3" width="70">
 
                         <div class="m-0">
 
@@ -66,16 +66,13 @@
                             </div>
 
                             <span class="text-dark float-right px-1 rounded border ml-4 mt-2">
-                                {{ config('app.currency_symbol') }} {{ $item->price }}
+                                {{ config('app.currency_symbol') }} {{ $order->total }}
                             </span>
 
                             <div class="clearfix"></div>
                         </div>
-
                     </div>
-
                     <div class="clearfix"></div>
-
                 @endforeach
             </div>
 

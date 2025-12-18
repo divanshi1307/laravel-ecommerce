@@ -70,15 +70,20 @@
 							</div>
 
                             {{-- Submit --}}
-                            <div class="text-center">
+                            <div class="text-center mt-3">
                                 <button type="submit" class="btn btn-secondary btnhover text-uppercase me-2 sign-btn">
                                     Sign In
                                 </button>
                                 <a href="{{ route('register.form') }}" class="btn btn-outline-secondary btnhover text-uppercase">
                                     Register
                                 </a>
-                            </div>
 
+                                <div class="mt-3">
+                                    <a href="{{ route('guest.login') }}" class="btn btn-warning btnhover text-uppercase">
+                                        Continue as Guest
+                                    </a>
+                                </div>
+                            </div>
                         </form>
                     </div> 
                 </div>
@@ -87,4 +92,141 @@
     </div>
 </div>
 
+@endsection
+
+@section('script')
+<script>
+	$(document).ready(function() {
+
+            $("#offcanvasRight").on("shown.bs.offcanvas", function () {
+                $.ajax({
+                    url: "{{ route('wishlist.render') }}",
+                    type: "GET",
+                    success: function (html) {
+                        $("#wishlistArea").html(html);
+                    },
+                    error: function () {
+                        $("#wishlistArea").html(`
+                            <li><p class="text-center text-danger">Failed to load wishlist.</p></li>
+                        `);
+                    }
+                });
+            });
+
+        ////REMOVE CART ITEM
+        $(document).on("click", ".removeCartItem", function () {
+
+            let btn = $(this);
+            let cartId = btn.data("id");
+
+            $.ajax({
+                url: "/cart/remove/" + cartId,
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+
+                success: function (res) {
+                    if (res.status === "removed") {
+
+                        if (res.product_id) {
+                            $(`.addToCartBtn[data-product-id="${res.product_id}"]`)
+                                .removeClass("active in-cart");
+                        }
+
+                        if (res.subtotal !== undefined) {
+                            if (Number(res.subtotal) <= 0 || res.count === 0) {
+
+                                $("#cart-total-section").html(`
+                                    <div class="cart-total text-center">
+                                        <h5 class="mb-0 fw-bold">Your cart is empty.</h5>
+                                    </div>
+                                `);
+
+                                $(".sidebar-cart-list").html(`
+                                    <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
+                                `);
+                                $("#cart-action-buttons").hide();
+                            } else {
+
+                                $("#cart-total-section").html(`
+                                    <div class="cart-total d-flex justify-content-between">
+                                        <h5 class="mb-0">Subtotal:</h5>
+                                        <h5 class="mb-0">₹ ${Number(res.subtotal).toLocaleString()}</h5>
+                                    </div>
+                                `);
+                                $("#cart-action-buttons").show();
+                            }
+                        }
+
+                        if (res.count !== undefined) {
+                            $("#cart-count").text(res.count);
+                            $(".cart-count").text(res.count);
+                        }
+                        
+                        btn.closest("li").fadeOut(200, function () {
+                            $(this).remove();
+
+                            if ($(".sidebar-cart-list li").length === 0) {
+                                $(".sidebar-cart-list").html(`
+                                    <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
+                                `);
+                            }
+                        });
+
+                        // Remove active state from add-to-cart button (on product detail page)
+                        if (res.product_id) {
+                            $(`.addToCartBtn[data-product-id="${res.product_id}"]`)
+                                .removeClass("in-cart");
+                        }
+
+                        // Flash message
+                        $("#flash-message").html(`
+                            <div class="alert alert-danger">Item removed from cart.</div>
+                        `);
+
+                        setTimeout(() => {
+                            $("#flash-message .alert").fadeOut();
+                        }, 2000);
+                        
+                    }
+                },
+
+                error: function () {
+                    $("#flash-message").html(`
+                        <div class="alert alert-danger">Something went wrong.</div>
+                    `);
+                }
+            });
+        });
+
+        //// CART QUANTITY UPDATE 
+        $(document).on('change', '.quantity-input', function() {
+            let quantity = $(this).val();
+            let cartItemId = $(this).data('id');
+
+            if (quantity < 1) quantity = 1;
+            let row = $(this).closest("tr"); 
+
+            $.ajax({
+                url: '/cart/update/' + cartItemId,
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    quantity: quantity
+                },
+                success: function(res) {
+                    row.find(".product-item-subtotal").text("₹ " + res.itemTotal);
+                    $("#subtotalValue").text("₹ " + res.subtotal);
+                    $("#grandTotalValue").text("₹ " + res.grandTotal);
+
+                },
+                error: function() {
+                    alert('Error updating quantity');
+                }
+            });
+        });
+	});
+
+</script>
 @endsection

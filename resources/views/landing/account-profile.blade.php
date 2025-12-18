@@ -47,6 +47,7 @@
                                         <div class="nav-title bg-light">ACCOUNT SETTINGS</div>
                                         <ul class="account-info-list">
                                             <li><a href="{{route('account.profile')}}">Profile</a></li>
+                                            <li><a href="{{route('account.reviews')}}">Review</a></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -115,13 +116,14 @@
 
                                     <div class="col-lg-6">
                                         <div class="form-group m-b25">
-                                            <label class="label-title">New password (leave blank to leave unchanged)</label>
+                                            <label class="label-title">New password <span class="text-danger">*</span></label>
                                             <input type="password" name="password" required class="form-control">
                                         </div>
                                     </div>
+                                    
                                     <div class="col-lg-6">
                                         <div class="form-group m-b25">
-                                            <label class="label-title">Confirm new password</label>
+                                            <label class="label-title">Confirm new password <span class="text-danger">*</span></label>
                                             <input type="password" name="password_confirmation" required class="form-control">
                                         </div>
                                     </div>

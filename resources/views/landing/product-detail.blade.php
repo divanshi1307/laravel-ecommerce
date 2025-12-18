@@ -6,9 +6,11 @@
             <div class="d-sm-flex justify-content-between container-fluid py-3">
                 <nav aria-label="breadcrumb" class="breadcrumb-row">
                     <ul class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                        <li class="breadcrumb-item">{{ $category->category_name ?? 'N/A' }}</li>
-                        <li class="breadcrumb-item active">{{ $subcategory->category_name ?? 'N/A' }}</li>
+                        <li class="breadcrumb-item"><a href="{{ url('/') }}"> Home</a></li>
+                        <li class="breadcrumb-item">{{ $category->category_name }}</li>
+                        <li class="breadcrumb-item active">
+                            <a href="{{ url('/subcategory/'.$subcategory->slug) }}">{{ $subcategory->category_name }}</a>
+                        </li>
                     </ul>
                 </nav>
             </div>
@@ -20,7 +22,40 @@
                             <div class="dz-product-detail sticky-top">
                                 <div class="swiper-btn-center-lr">
                                     <div class="swiper product-gallery-swiper2 rounded">
-                                        <div class="swiper-wrapper" id="lightgallery2">
+
+                                        @if(in_array($product->product_type, ['variant', 'adult']))
+                                            <div class="swiper-slide" id="lightgallery2">
+                                                <div class="dz-media DZoomImage">
+                                                    <a class="mfp-link lg-item"
+                                                    href="{{ asset('uploads/products/' . $product->display_image) }}"
+                                                    data-src="{{ asset('uploads/products/' . $product->display_image) }}">
+                                                        <i class="feather icon-maximize dz-maximize top-left"></i>
+                                                    </a>
+
+                                                    <img id="dynamicImage"
+                                                        src="{{ asset('uploads/products/' . $product->display_image) }}"
+                                                        alt="{{ $product->title }}">
+                                                </div>
+                                            </div>
+
+                                        @else
+                                            <div class="swiper-wrapper" id="lightgallery2">
+                                                @foreach($product->images_list as $img)
+                                                    <div class="swiper-slide">
+                                                        <div class="dz-media DZoomImage">
+                                                            <a class="mfp-link lg-item"
+                                                            href="{{ asset('uploads/products/'.$img->file_name) }}"
+                                                            data-src="{{ asset('uploads/products/'.$img->file_name) }}">
+                                                                <i class="feather icon-maximize dz-maximize top-left"></i>
+                                                            </a>
+                                                            <img id="dynamicImage" src="{{ asset('uploads/products/'.$img->file_name) }}" alt="">
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+
+                                        {{-- <div class="swiper-wrapper" id="lightgallery2">
                                             @foreach($product->images_list as $img)
                                                 <div class="swiper-slide">
                                                     <div class="dz-media DZoomImage">
@@ -33,7 +68,7 @@
                                                     </div>
                                                 </div>
                                             @endforeach
-                                        </div>
+                                        </div> --}}
                                     </div>
                                 </div>							
                             </div>	
@@ -45,29 +80,30 @@
                                         <div class="dz-content">
                                             <div class="dz-content-footer">
                                                 <div class="dz-content-start">
-                                                    <span class="badge bg-secondary mb-2">SALE 20% Off</span>
+                                                    {{-- <span class="badge bg-secondary mb-2">SALE 20% Off</span> --}}
                                                     <h4 class="title mb-1">{{ $product->title }}</h4>
                                                     <div class="review-num">
                                                         <ul class="dz-rating me-2">
-                                                            <li class="star-fill">
-                                                                <i class="flaticon-star-1"></i>
-                                                            </li>										
-                                                            <li class="star-fill">
-                                                                <i class="flaticon-star-1"></i>
-                                                            </li>
-                                                            <li class="star-fill">
-                                                                <i class="flaticon-star-1"></i>
-                                                            </li>
-                                                            <li>
-                                                                <i class="flaticon-star-1"></i>
-                                                            </li>
-                                                            <li>
-                                                                <i class="flaticon-star-1"></i>
-                                                            </li>
+                                                            @php
+                                                                $avg = round($product->averageRating());
+                                                            @endphp
+
+                                                            @for($i = 1; $i <= 5; $i++)
+                                                                <li class="{{ $i <= $avg ? 'star-fill' : '' }}">
+                                                                    <i class="flaticon-star-1"></i>
+                                                                </li>
+                                                            @endfor
                                                         </ul>
-                                                        <span class="text-secondary me-2">4.7 Rating</span>
-                                                        <a href="javascript:void(0);">(5 customer reviews)</a>
+
+                                                        <span class="text-secondary me-2">
+                                                            {{ number_format($product->averageRating(), 1) }} Rating
+                                                        </span>
+
+                                                        <a href="javascript:void(0);">
+                                                            ({{ $product->reviewCount() }} customer reviews)
+                                                        </a>
                                                     </div>
+
                                                 </div>
                                             </div>
                                             <div class="dz-info">
@@ -107,7 +143,6 @@
                                                         }
                                                     @endphp
 
-
                                                     <li>
                                                         <strong>Special price:</strong><br>
 
@@ -136,29 +171,76 @@
                                                             <span id="dynamicDiscount" style="display:none; color:green; font-size:16px; font-weight:600;">
                                                             </span>
                                                         </div>
+                                                        <small id="stockText" style="color:red; display:none;"></small>
                                                     </li>
                                                 </ul>
                                             </div>
 
                                             <p class="para-text">
-                                                {!! $product->description !!}
+                                                @php
+                                                    $cleanDesc = html_entity_decode(strip_tags($product->description ?? 'N/A'));
+                                                    $description = Str::words($cleanDesc, 50, '...');
+                                                @endphp
+                                                <p>{{ $description ?? 'N/A' }}</p>
+                                                {{-- {!! $product->description !!} --}}
                                             </p>
                                             
+                                            {{-- @php
+                                                $cheapestAttr = $product->attributeRelations->sortBy('price')->first();
+                                            @endphp --}}
+
                                             <div class="row">
-                                                @if ($product->product_type == 'variant')
+                                                @if ($product->product_type == 'variant' || $product->product_type == 'adult')
                                                     <div class="col-md-4">
                                                         <label>Pack Of*</label>
-                                                        <select id="sizeSelect" class="form-select w-100">
-                                                        {{-- <select id="quantitySelect" class="form-select w-100"> --}}
+
+                                                        {{-- <select id="quantitySelect" name="variant_id" class="form-select w-100">
+                                                            @foreach ($product->attributeRelations as $attr)
+                                                                @if($attr->quantity > 0)
+                                                                    <option value="{{ $attr->id }}"
+                                                                        data-price="{{ $attr->price }}"
+                                                                        data-original="{{ $attr->original_price }}"
+                                                                        data-pack="{{ $attr->value }}"      
+                                                                        data-stock="{{ $attr->quantity }}"  
+                                                                        {{ $cheapestAttr && $cheapestAttr->id == $attr->id ? 'selected' : '' }}>
+                                                                        {{ $attr->value }} Pieces
+                                                                    </option>
+                                                                @endif
+                                                            @endforeach
+                                                            <small id="stockText" style="color:red; display:none;"></small>
+                                                            <input type="hidden" name="variant_id" id="variantId">
+
+                                                        </select> --}}
+
+                                                        <select id="quantitySelect" class="form-select w-100">
                                                             <option selected disabled>Select Quantity</option>
                                                             @foreach ($product->attributeRelations as $attr)
-                                                                <option value="{{ $attr->id }}" data-quantity="{{ $attr->quantity }}" data-size="{{ explode('-', $attr->value)[0] }}">
-                                                                    {{ $attr->quantity }} Pieces
+                                                                <option value="{{ $attr->id }}" data-quantity="{{ $attr->value }}" data-size="{{ explode('-', $attr->value)[0] }}" data-stock="{{ $attr->quantity }}">
+                                                                    {{ $attr->value }} Pieces
                                                                 </option>
                                                             @endforeach
+                                                            
                                                         </select>
+
+                                                        <small id="stockText" style="color:red; display:none;"></small>
                                                     </div>
 
+                                                    @if ($product->product_type == 'variant' && !preg_match('/\([A-Za-z]+-.*\)/', $product->title))
+                                                        <div class="col-md-4">
+                                                            <label>Size Of*</label>
+                                                            <select id="sizeSelect" class="form-select w-100">
+                                                                <option value="" selected disabled>Select Size</option>
+
+                                                                @foreach ($product->attributeRelations as $attr)
+                                                                    @php $size = explode('-', $attr->value)[0]; @endphp
+
+                                                                    <option value="{{ $attr->id }}" data-quantity="{{ $attr->quantity }}">
+                                                                        {{ explode('-', $attr->value)[0] }}
+                                                                    </option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                    @endif
                                                 @endif
 
                                                 <!-- User enters delivery pincode -->
@@ -187,8 +269,15 @@
                                                 </ul>
                                                 <ul>
                                                     <li><strong>Tags:</strong></li>
-                                                    <li>{{ $product->meta_tags ?? 'N/A' }} </li>
-                                                    
+                                                    <li>{{ $product->tags ?? 'N/A' }} </li>
+                                                </ul>
+                                                <ul>
+                                                    <li><strong>Manufacture Date:</strong></li>
+                                                    <li>{{ $product->manufacture_date ? \Carbon\Carbon::parse($product->manufacture_date)->format('Y-m-d') : 'N/A' }} </li>
+                                                </ul>
+                                                <ul>
+                                                    <li><strong>Expiry Date:</strong></li>
+                                                    <li>{{ $product->expiry_date?->format('Y-m-d') ?? 'N/A' }}</li>
                                                 </ul>
                                                 {{-- <ul class="social-icon">
                                                     <li><strong>Share:</strong></li>
@@ -245,20 +334,24 @@
                                         <div class="icon-bx-wraper style-4 m-b30">
                                             <div class="icon-bx">
                                                 {{-- Brand Logo --}}
-                                                @if($product->brand)
-                                                    <img src="{{ asset('storage/' . $product->brand->brand_logo) }}" alt="{{ $product->brand->brand_name }}">
-                                                @else
-                                                    <img src="{{ asset('images/default-brand.png') }}" alt="Brand">
-                                                @endif
+                                                <a href="{{ route('brand.products', $product->brand->slug) }}" class="text-decoration-none">
+                                                    @if($product->brand)
+                                                        <img src="{{ asset('storage/' . $product->brand->brand_logo) }}" alt="{{ $product->brand->brand_name }}">
+                                                    @else
+                                                        <img src="{{ asset('images/default-brand.png') }}" alt="Brand">
+                                                    @endif
+                                                </a>
                                             </div>
 
                                             <div class="icon-content">
-                                                <h6 class="dz-title">{{ $product->brand->brand_name ?? 'Unknown Brand' }}</h6>
-                                                @php
-                                                    $cleanDesc = html_entity_decode(strip_tags($product->brand->description ?? 'N/A'));
-                                                    $shortDesc = Str::words($cleanDesc, 20, '...');
-                                                @endphp
-                                                <p>{{ $shortDesc ?? 'N/A' }}</p>
+                                                <a href="{{ route('brand.products', $product->brand->slug) }}" class="text-decoration-none">
+                                                    <h6 class="dz-title">{{ $product->brand->brand_name ?? 'Unknown Brand' }}</h6>
+                                                    @php
+                                                        $cleanDesc = html_entity_decode(strip_tags($product->brand->description ?? 'N/A'));
+                                                        $shortDesc = Str::words($cleanDesc, 20, '...');
+                                                    @endphp
+                                                    <p>{{ $shortDesc ?? 'N/A' }}</p>
+                                                </a>
                                             </div>  
                                         </div>
 
@@ -317,12 +410,11 @@
 
                                             if ($product->product_type == 'simple') {
                                                 $defaultPrice = $product->price ?? 0;
-                                            } 
-                                            elseif ($product->product_type == 'variant') {
+                                            } elseif (in_array($product->product_type, ['variant', 'adult'])) {
                                                 if (!empty($defaultVariant->variant_price)) {
                                                     $defaultPrice = $defaultVariant->variant_price;
                                                 } 
-                                                elseif (isset($product->variants) && $product->variants->count() > 0) {
+                                                elseif (isset($product->attributeRelations) && $product->attributeRelations->count() > 0) {
                                                     $defaultPrice = $product->attributeRelations->min('price');
                                                 }
                                             }
@@ -355,7 +447,11 @@
                                             <input type="hidden" name="pincode" id="hiddenPincode">
                                             <input type="hidden" name="source" value="product_detail">
 
-                                            <button type="submit" class="btn btn-secondary w-100">ADD TO CART</button>
+                                            <button type="submit" class="btn btn-secondary w-100" id="addToCartBtn" 
+                                            data-product-type="{{ $product->product_type }}"
+        data-stock="{{ $product->stock_quantity ?? 0 }}"
+
+        >ADD TO CART</button>
                                         </form>
                                     </div>	
                                 </div>
@@ -373,9 +469,11 @@
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">Description</button>
                                 </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Reviews (12)</button>
-                                </li>
+                                @if($product->userHasPurchased())
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Reviews ({{ $product->reviewCount() }})</button>
+                                    </li>
+                                @endif
                             </ul>
                             <div class="tab-content" id="myTabContent">
                                 <div class="tab-pane fade show active" id="home-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabindex="0">
@@ -384,20 +482,17 @@
                                         <p class="para-text">
                                             {!! $product->description !!}
                                         </p>
-                                        <ul class="feature-detail">
-                                            <li>
-                                                <i class="icon feather icon-check"></i>
-                                                <h5>Closure Type : Adhesive Band</h5>
-                                            </li>
-                                            <li>
-                                                <i class="icon feather icon-check"></i>
-                                                <h5>Effective Duration : 25 hours</h5>
-                                            </li>
-                                            <li>
-                                                <i class="icon feather icon-check"></i>
-                                                <h5>Maximum Shelf Life : 1095 Days</h5>
-                                            </li>
-                                        </ul>
+                                        {{-- HIGHLIGHTS--}}
+                                        @if($product->highlights)
+                                            <ul class="feature-detail">
+                                                @foreach(explode(',', $product->highlights) as $highlight)
+                                                    <li>
+                                                        <i class="icon feather icon-check"></i>
+                                                        <h5>{{ trim($highlight) }}</h5>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
                                     </div>
                                     <div class="product-specification">
                                         <h4 class="specification-title">Specifications</h4>
@@ -445,96 +540,60 @@
                                 <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
                                     <div class="clear" id="comment-list">
                                         <div class="post-comments comments-area style-1 clearfix">
-                                            <h4 class="comments-title mb-2">Comments (02)</h4>
-                                            <p class="dz-title-text">There are many variations of passages of Lorem Ipsum available.</p>
+                                            <h4 class="comments-title mb-2">Comments ({{ $product->reviewCount() }})</h4>
                                             <div id="comment">
-                                                <ol class="comment-list">
-                                                    <li class="comment even thread-even depth-1 comment" id="comment-2">
-                                                        <div class="comment-body">
-                                                            <div class="comment-author vcard">
-                                                                    <img src="images/profile4.jpg" alt="/" class="avatar">
-                                                                    <cite class="fn">Michel Poe</cite> 
-                                                            </div>
-                                                            <div class="comment-content dz-page-text">
-                                                                <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.</p>
-                                                            </div>
-                                                            <div class="reply">
-                                                                <a rel="nofollow" class="comment-reply-link" href="javascript:void(0);">Reply</a>
-                                                            </div>
-                                                        </div>
-                                                        <ol class="children">
-                                                            <li class="comment byuser comment-author-w3itexpertsuser bypostauthor odd alt depth-2 comment" id="comment-3">
-                                                                <div class="comment-body" id="div-comment-3">
-                                                                    <div class="comment-author vcard">
-                                                                    <img src="images/profile3.jpg" alt="/" class="avatar">
-                                                                    <cite class="fn">Celesto Anderson</cite>
-                                                                    </div>
-                                                                    <div class="comment-content dz-page-text">
-                                                                    <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.</p>
-                                                                    </div>
-                                                                    <div class="reply">
-                                                                    <a class="comment-reply-link" href="javascript:void(0);"> Reply</a>
-                                                                    </div>
-                                                                </div>
-                                                            </li>
-                                                        </ol>
-                                                    </li>
-                                                    <li class="comment even thread-odd thread-alt depth-1 comment" id="comment-4">
-                                                        <div class="comment-body" id="div-comment-4">
-                                                            <div class="comment-author vcard">
-                                                                <img src="images/profile2.jpg" alt="/" class="avatar">
-                                                                <cite class="fn">Monsur Rahman Lito</cite>
-                                                            </div>
-                                                            <div class="comment-content dz-page-text">
-                                                                <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.</p>
-                                                            </div>
-                                                            <div class="reply">
-                                                                <a class="comment-reply-link" href="javascript:void(0);"> Reply</a>
-                                                            </div>
-                                                        </div>
-                                                    </li>
-                                                </ol>
+                                                @include('landing.partials.reviews', ['reviews' => $reviews])
                                             </div>
+
                                             <div class="default-form comment-respond style-1" id="respond">
-                                                <h4 class="comment-reply-title mb-2" id="reply-title">Good Comments</h4>
-                                                <p class="dz-title-text">There are many variations of passages of Lorem Ipsum available.</p>
-                                                <div class="comment-form-rating d-flex">
-                                                    <label class="pull-left m-r10 m-b20  text-secondary">Your Rating</label>
-                                                    <div class="rating-widget">
-                                                        <!-- Rating Stars Box -->
-                                                        <div  class="rating-stars">
-                                                            <ul id="stars">
-                                                                <li class="star" title="Poor" data-value="1">
-                                                                    <i class="fas fa-star fa-fw"></i>
-                                                                </li>
-                                                                <li class="star" title="Fair" data-value="2">
-                                                                    <i class="fas fa-star fa-fw"></i>
-                                                                </li>
-                                                                <li class="star" title="Good" data-value="3">
-                                                                    <i class="fas fa-star fa-fw"></i>
-                                                                </li>
-                                                                <li class="star" title="Excellent" data-value="4">
-                                                                    <i class="fas fa-star fa-fw"></i>
-                                                                </li>
-                                                                <li class="star" title="WOW!!!" data-value="5">
-                                                                    <i class="fas fa-star fa-fw"></i>
-                                                                </li>
-                                                            </ul>
+                                                {{-- <h4 class="comment-reply-title mb-2" id="reply-title">Good Comments</h4>
+                                                <p class="dz-title-text">There are many variations of passages of Lorem Ipsum available.</p> --}}
+                                                <div id="flash-message"></div>
+                                                @if(!$alreadyReviewed)
+                                                    <form id="reviewForm" class="comment-form" novalidate>
+                                                        @csrf
+
+                                                        <div class="comment-form-rating d-flex">
+                                                            <label class="pull-left m-r10 m-b20 text-secondary">Your Rating</label>
+                                                            <div class="rating-widget">
+                                                                <div class="rating-stars">
+                                                                    <ul id="stars">
+                                                                        @for($i=1; $i<=5; $i++)
+                                                                            <li class="star" data-value="{{ $i }}">
+                                                                                <i class="fas fa-star fa-fw"></i>
+                                                                            </li>
+                                                                        @endfor
+                                                                    </ul>
+                                                                </div>
+                                                                <div id="ratingError" class="text-danger mt-1" style="font-size:14px;"></div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                                <div class="clearfix">
-                                                    <form method="post" id="comments_form" class="comment-form" novalidate>
-                                                        <p class="comment-form-author"><input id="name" placeholder="Author" name="author" type="text" value=""></p>
-                                                        <p class="comment-form-email"><input id="email" required="required" placeholder="Email" name="email" type="email" value=""></p>
-                                                        <p class="comment-form-comment"><textarea id="comments" placeholder="Type Comment Here" class="form-control4" name="comment" cols="45" rows="3" required="required"></textarea></p>
-                                                        <p class="col-md-12 col-sm-12 col-xs-12 form-submit">
-                                                            <button id="submit" type="submit" class="submit btn btn-secondary btnhover3 filled">
-                                                            Submit Now
+
+                                                        <input type="hidden" id="ratingInput" name="rating">
+
+                                                        <p class="comment-form-author w-100">
+                                                            <input id="name" placeholder="Author" name="uname" type="text">
+                                                        </p>
+
+                                                        <p class="comment-form-email w-100">
+                                                            <input id="email" placeholder="Email" name="uemail" type="email">
+                                                        </p>
+
+                                                        <p class="comment-form-comment">
+                                                            <textarea id="comments" placeholder="Type Comment Here" name="comment" cols="45" rows="3"></textarea>
+                                                        </p>
+
+                                                        <p class="col-md-12 form-submit">
+                                                            <button type="submit" class="submit btn btn-secondary btnhover3 filled">
+                                                                Submit Now
                                                             </button>
                                                         </p>
                                                     </form>
-                                                </div>
+                                                @else
+                                                    <div id="reviewAlert" class="alert alert-info">
+                                                        You have already reviewed this product.
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -547,20 +606,18 @@
 		
             <section class="content-inner-1 overflow-hidden">
                 <div class="container">
-
                     @if($relatedProducts->count() > 0)
                         <div class="section-head style-2 d-md-flex justify-content-between align-items-center">
                             <div class="left-content">
                                 <h2 class="title mb-0">Related products</h2>
                             </div>
-                            
-                            <a href="{{ route('subcategory.products', $subcategory->id) }}" 
+                            <a href="{{ route('subcategory.products', $subcategory->slug) }}" 
                             class="text-secondary font-14 d-flex align-items-center gap-1">
                                 See all products
                                 <i class="icon feather icon-chevron-right font-18"></i>
                             </a>
                         </div>
-                        <div id="flash-message"></div>
+                        
                         <div class="swiper-btn-center-lr">
                             <div class="swiper swiper-four">
                                 <div class="swiper-wrapper">
@@ -589,10 +646,63 @@
                                                             <i class="icon feather icon-heart-on dz-heart-fill"></i>
                                                         </div>
 
-                                                        <div class="btn btn-primary meta-icon dz-carticon">
-                                                            <i class="flaticon flaticon-basket"></i>
-                                                            <i class="flaticon flaticon-basket-on dz-heart-fill"></i>
-                                                        </div>
+                                                        {{-- Show Price --}}
+
+                                                        @php
+                                                            // GST Percentage
+                                                            $gstPercentage = 0;
+                                                            if (!empty($product->gst)) {
+                                                                $gstPercentage = (float) str_replace('%', '', $product->gst->gst_percentage);
+                                                            }
+
+                                                            $defaultImage = ($defaultVariant->variant_images ?? null) ?: ($product->image ?? ($product->images_list->first()->file_name ?? ''));
+
+                                                            $basePrice = 0;
+                                                            $originalBase = 0; 
+
+                                                            if ($product->product_type == 'simple') {
+                                                                $basePrice = $product->price ?? 0;
+                                                                $originalBase = $product->original_price ?? $basePrice;
+
+                                                            } elseif ($product->product_type == 'variant' || $product->product_type == 'adult') {
+                                                                $basePrice = $product->attributeRelations->min('price') ?? 0;
+                                                                $originalBase = $product->attributeRelations->min('original_price') ?? $basePrice;
+                                                            }
+
+                                                            $finalPrice = $basePrice + ($basePrice * $gstPercentage / 100);
+                                                        @endphp
+
+                                                        <form action="{{ route('cart.add') }}" method="POST">
+                                                            @csrf
+
+                                                            <input type="hidden" name="product_id" value="{{ $product->id }}">
+
+                                                            <input type="hidden" name="variant_id" id="variantId" value="{{ $defaultVariant->id ?? '' }}">
+
+                                                            <input type="hidden" name="price" id="variantPrice" value="{{ $finalPrice }}">
+
+                                                            <input type="hidden" name="original_price" id="variantOriginalPrice" value="{{ $originalBase }}">
+
+                                                            <input type="hidden" name="discount" id="variantDiscount" value="{{ $defaultVariant->discount ?? 0 }}">
+                                                            <input type="hidden" name="source" value="home">
+
+                                                            <input type="hidden" name="image" id="variantImage" value="{{ $defaultImage }}">
+
+                                                            @if(in_array($product->id, $cartProductIds ?? []))
+                                                                <div class="btn btn-primary meta-icon dz-carticon in-cart"
+                                                                    data-product-id="{{ $product->id }}"
+                                                                    data-variant-id="{{ $defaultVariant->id ?? '' }}"
+                                                                    data-price="{{ $finalPrice }}"
+                                                                    data-original-price="{{ $originalBase }}"
+                                                                    data-discount="{{ $defaultVariant->discount ?? 0 }}"
+                                                                    data-image="{{ $defaultImage }}">
+
+                                                                    <i class="flaticon flaticon-basket"></i>
+                                                                    <i class="flaticon flaticon-basket-on dz-heart-fill"></i>
+                                                                </div>
+                                                            @endif
+                                                        </form>
+
                                                     </div>
                                                 </div>
 
@@ -602,22 +712,12 @@
                                                             {{ $item->title }}
                                                         </a>
                                                     </h5>
-
-                                                    <h5 class="price">
-                                                        @if ($item->product_type == 'simple')
-                                                            ₹ {{ number_format($item->price, 0) }}
-                                                        @else
-                                                            ₹ {{ number_format($item->variants->min('variant_price'), 0) }}
-                                                        @endif
-                                                    </h5>
+                                                    <h5 class="price">₹ {{ number_format($priceWithGst, 0) }}</h5>                                                </div>
                                                 </div>
-
                                             </div>
-                                        </div>
-                                    @endforeach
-
+                                        @endforeach
+                                    </div>
                                 </div>
-                            </div>
 
                             <div class="pagination-align">
                                 <div class="tranding-button-prev btn-prev">
@@ -642,20 +742,63 @@
 
 @section('script')
     <script>
-
-        $(document).ready(function() {
-            $.ajax({
-                url: "{{ route('wishlist.render') }}",
-                type: "GET",
-                success: function(html) {
-                    $("#wishlistArea").html(html);
-                }
+        $(document).ready(function () {
+            $("#offcanvasRight").on("shown.bs.offcanvas", function () {
+                $.ajax({
+                    url: "{{ route('wishlist.render') }}",
+                    type: "GET",
+                    success: function (html) {
+                        $("#wishlistArea").html(html);
+                    },
+                    error: function () {
+                        $("#wishlistArea").html(`
+                            <li><p class="text-center text-danger">Failed to load wishlist.</p></li>
+                        `);
+                    }
+                });
             });
+        });
+
+        // Only for SIMPLE products(STOCK QUANTITY)
+        $(document).ready(function () {
+            let productType = $('#addToCartBtn').data('product-type');
+
+            if (productType === 'simple') {
+                let stock = parseInt($('#addToCartBtn').data('stock'), 10) || 0;
+
+                if (stock === 0) {
+                    $('#stockText').html('<strong>Out of Stock</strong>').addClass('text-danger fw-bold').show();
+                    $('#addToCartBtn').prop('disabled', true).addClass('disabled').css('cursor', 'not-allowed');
+
+                } else if (stock <= 5) {
+                    $('#stockText').html('<strong>Hurry Up!</strong> Only ' + stock + ' left').addClass('text-danger fw-bold').show();
+                    $('#addToCartBtn').prop('disabled', false).removeClass('disabled').css('cursor', 'pointer');
+
+                } else {
+                    $('#stockText').hide();
+                    $('#addToCartBtn').prop('disabled', false).removeClass('disabled').css('cursor', 'pointer');
+                }
+            }
         });
 
         // When Quantity is changed
         $('#quantitySelect').on('change', function () {
             let selectedQuantity = $(this).find(':selected').data('quantity');
+
+            let stock = $('option:selected', this).data('stock');
+
+            if (stock === 0) {
+                $('#stockText').html('<strong>Out of stock.</strong>').removeClass('text-danger').addClass('text-danger fw-bold').show();
+                $('#addToCartBtn').prop('disabled', true).addClass('disabled').css('cursor', 'not-allowed');
+
+            } else if (stock <= 5) {
+                $('#stockText').html('<strong>Hurry Up!</strong> Only ' + stock + ' left').removeClass('text-danger').addClass('text-danger fw-bold').show();
+                $('#addToCartBtn').prop('disabled', false).removeClass('disabled').css('cursor', 'pointer');
+
+            } else {
+                $('#stockText').hide();
+                $('#addToCartBtn').prop('disabled', false).removeClass('disabled').css('cursor', 'pointer');
+            }
 
             $('#sizeSelect option').each(function () {
                 let optionQuantity = $(this).data('quantity');
@@ -678,49 +821,111 @@
             $('#hiddenPincode').val($('#pincodeInput').val());
         });
 
-        $('#sizeSelect').on('change', function () {
-            let selectedId = $(this).val();
+        let productType = "{{ $product->product_type }}";
+        function safeBind(selector, event, handler) {
+            const el = $(selector);
+            if (el.length) el.on(event, handler);
+        }
 
-            if (selectedId) {
-                $.ajax({
-                    url: '/get-attribute-image/' + selectedId,
-                    type: 'GET',
-                    success: function (res) {
-
-                        $('#dynamicPrice').text('₹' + Number(res.price).toLocaleString());
-                        $('#TotalPrice').text('₹' + Number(res.price).toLocaleString());
-
-                        $('#dynamicOriginalPrice').text('₹' + Number(res.original_price).toLocaleString()).show();
-                        $('#dynamicDiscount').text(res.discount + '% off').show();
-
-                        $('#staticOriginal').hide();
-                        $('#staticDiscount').hide();
-
-                        $('#dynamicImage').attr('src', res.image);
-
-                        // Add to cart hidden fields
-                        $('#variantId').val(res.id);
-                        $('#variantPrice').val(res.price);
-                        $('#variantOriginalPrice').val(res.original_price);
-                        $('#variantDiscount').val(res.discount);
-
-                        let fullPath = res.image;
-                        let filename = fullPath.split('/').pop();
-                        $('#variantImage').val(filename);
-
-                        // Saving amount
-                        let savingAmount = res.original_price - res.price;
-                        if (savingAmount > 0) {
-                            $('#dynamicSaving').text(
-                                'You will save ₹ ' + Number(savingAmount).toLocaleString());
-                            $('#saveBox').show();
-                        } else {
-                            $('#saveBox').hide();
-                        }
-                    }
-                });
-            }
+        safeBind('#quantitySelect', 'change', function () {
+            const selectedId = $(this).val();
+            updateVariant(selectedId);
         });
+
+        safeBind('#sizeSelect', 'change', function () {
+            const selectedId = $(this).val();
+            updateVariant(selectedId);
+        });
+
+        if (productType === 'adult') {
+            $('#sizeSelect').closest('.col-md-4').hide(); 
+        }
+
+        // Reusable function
+        function updateVariant(selectedId) {
+            if (!selectedId) return;
+
+            $.ajax({
+                url: '/get-attribute-image/' + selectedId,
+                type: 'GET',
+                success: function(res) {
+                    $('#dynamicPrice').text('₹' + Number(res.price).toLocaleString());
+                    $('#TotalPrice').text('₹' + Number(res.price).toLocaleString());
+
+                    $('#dynamicOriginalPrice').text('₹' + Number(res.original_price).toLocaleString()).show();
+                    $('#dynamicDiscount').text(res.discount + '% off').show();
+
+                    $('#staticOriginal').hide();
+                    $('#staticDiscount').hide();
+
+                    $('#dynamicImage').attr('src', res.image);
+
+                    // Add to cart hidden fields
+                    $('#variantId').val(res.id);
+                    $('#variantPrice').val(res.price);
+                    $('#variantOriginalPrice').val(res.original_price);
+                    $('#variantDiscount').val(res.discount);
+
+                    let filename = res.image.split('/').pop();
+                    $('#variantImage').val(filename);
+                    $('#variantId').val(res.id); // ✅ NOW CORRECT
+                    // $('#stockText').text(res.stock + ' pieces available').show();
+
+                    // Saving amount
+                    let savingAmount = res.original_price - res.price;
+                    if (savingAmount > 0) {
+                        $('#dynamicSaving').text('You will save ₹ ' + Number(savingAmount).toLocaleString());
+                        $('#saveBox').show();
+                    } else {
+                        $('#saveBox').hide();
+                    }
+                }
+            });
+        }
+
+        // $('#sizeSelect').on('change', function () {
+        //     let selectedId = $(this).val();
+
+        //     if (selectedId) {
+        //         $.ajax({
+        //             url: '/get-attribute-image/' + selectedId,
+        //             type: 'GET',
+        //             success: function (res) {
+
+        //                 $('#dynamicPrice').text('₹' + Number(res.price).toLocaleString());
+        //                 $('#TotalPrice').text('₹' + Number(res.price).toLocaleString());
+
+        //                 $('#dynamicOriginalPrice').text('₹' + Number(res.original_price).toLocaleString()).show();
+        //                 $('#dynamicDiscount').text(res.discount + '% off').show();
+
+        //                 $('#staticOriginal').hide();
+        //                 $('#staticDiscount').hide();
+
+        //                 $('#dynamicImage').attr('src', res.image);
+
+        //                 // Add to cart hidden fields
+        //                 $('#variantId').val(res.id);
+        //                 $('#variantPrice').val(res.price);
+        //                 $('#variantOriginalPrice').val(res.original_price);
+        //                 $('#variantDiscount').val(res.discount);
+
+        //                 let fullPath = res.image;
+        //                 let filename = fullPath.split('/').pop();
+        //                 $('#variantImage').val(filename);
+
+        //                 // Saving amount
+        //                 let savingAmount = res.original_price - res.price;
+        //                 if (savingAmount > 0) {
+        //                     $('#dynamicSaving').text(
+        //                         'You will save ₹ ' + Number(savingAmount).toLocaleString());
+        //                     $('#saveBox').show();
+        //                 } else {
+        //                     $('#saveBox').hide();
+        //                 }
+        //             }
+        //         });
+        //     }
+        // });
 
         ///// WISHLIST
         $(document).on("click", ".dz-wishicon", function() 
@@ -736,12 +941,12 @@
                 success: function(res) {
                     if (res.status === "added") {
                         btn.addClass("active");
-                        $("#flash-message").html('<div class="alert alert-success">Added to wishlist</div>');
+                        showCartMessage('Added to wishlist', false);
                     }
 
                     if (res.status === "removed") {
                         btn.removeClass("active");
-                        $("#flash-message").html('<div class="alert alert-danger">Removed from wishlist</div>');
+                        showCartMessage('Removed from wishlist', true);
                     }
 
                     setTimeout(() => {
@@ -754,10 +959,8 @@
 
                 error: function(xhr) {
                     if (xhr.status === 401) {
-                        $("#flash-message").html(`
-                            <div class="alert alert-danger">Please login to use wishlist.</div>
-                        `);
-
+                        showCartMessage('Please login to use wishlist', true);
+                      
                         setTimeout(() => {
                             $("#flash-message .alert").fadeOut();
                         }, 2500);
@@ -788,6 +991,7 @@
 
                             let count = $("#wishlistArea li").length;
                             $("#wishlist-count").text(count);
+                            $(".cart-count").text(res.count);
 
                             if (count === 0) {
                                 $("#wishlistArea").html(`
@@ -814,7 +1018,6 @@
                 }
             });
         });
-
 
         $(document).on('click', '.wishlistBtn', function () {
 
@@ -853,6 +1056,158 @@
             });
         });
 
+        ////// ADD TO CART
+    
+        $(document).on('click', '.addToCartBtn', function(e) {
+            
+            e.preventDefault();
+            let btn = $(this);
+
+            let productId     = btn.data('product-id');
+            let variantId     = btn.data('variant-id');
+            let price         = btn.data('price');
+            let originalPrice = btn.data('original-price');
+            let discount      = btn.data('discount');
+            let image         = btn.data('image');
+
+            $.ajax({
+                url: '/cart/add',
+                type: 'POST',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    product_id: productId,
+                    variant_id: variantId,
+                    price: price,
+                    original_price: originalPrice,
+                    discount: discount,
+                    image: image,
+                    quantity: 1
+                },
+                success: function(res) {
+                    if(res.status === 'success'){
+                        if(res.cartCount){
+                            $('.cart-count').text(res.cartCount);
+                        }
+                        if(res.cartItems){
+                            updateHeaderCart(res.cartItems);
+                        }
+
+                        btn.addClass('in-cart');
+                        showCartMessage('Product added to cart.', false);
+                    }
+                },
+                error: function(xhr) {
+                    if(xhr.status === 401){
+                        showCartMessage('Please login to add to cart.', true);
+                    } else {
+                        showCartMessage('Something went wrong.', true);
+                    }
+                }
+            });
+        });
+
+
+        function updateHeaderCart(cartItems){
+            let listHTML = '';
+            let subtotal = 0;
+
+            if (!cartItems || cartItems.length === 0) {
+
+                listHTML = '<li class="text-center p-3">Your cart is empty.</li>';
+
+            } else {
+                cartItems.forEach(function(item){
+                    let img = item.image ? '/uploads/products/' + item.image :
+                            (item.product && item.product.image ? '/uploads/products/' + item.product.image :
+                            '/images/default-product.png');
+
+                    let name = item.product ? item.product.title : 'Product';
+
+                    // Calculate item subtotal
+                    let itemSubtotal = parseFloat(item.price) * parseInt(item.quantity);
+
+                    subtotal += itemSubtotal;
+
+                    listHTML += `
+                        <li data-id="${item.id}">
+                            <div class="cart-widget">
+
+                                <div class="dz-media me-3">
+                                    <img src="${img}" width="60" />
+                                </div>
+
+                                <div class="cart-content">
+                                    <h6 class="title">
+                                        <a href="/product/${item.product ? item.product.id : '#'}">${name}</a>
+                                    </h6>
+
+                                    <div class="d-flex align-items-center">
+                                    
+                                        <div class="quantity btn-quantity style-1 me-3">
+                                            <div class="input-group bootstrap-touchspin">
+                                                <input type="text" value="${item.quantity}" min="1"
+                                                    class="form-control quantity-input"
+                                                    data-id="${item.id}" style="display:block;">
+
+                                                <span class="input-group-btn-vertical">
+                                                    <button class="btn btn-default bootstrap-touchspin-up quantity-plus" data-id="${item.id}">
+                                                        <i class="fa-solid fa-plus"></i>
+                                                    </button>
+                                                    <button class="btn btn-default bootstrap-touchspin-down quantity-minus" data-id="${item.id}">
+                                                        <i class="fa-solid fa-minus"></i>
+                                                    </button>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <h6 class="dz-price mb-0">₹${itemSubtotal.toFixed(0)}</h6>
+
+                                    </div>
+                                </div>
+
+                                <a href="javascript:void(0);" class="dz-close removeCartItem" data-id="${item.id}">
+                                    <i class="ti-close"></i>
+                                </a>
+
+                            </div>
+                        </li>
+                    `;
+                });
+            }
+
+            // Update cart items
+            $('.sidebar-cart-list').html(listHTML);
+
+            // Format subtotal like Blade
+            let subtotalHTML = `
+                <div class="cart-total d-flex justify-content-between">
+                    <h5 class="mb-0">Subtotal:</h5>
+                    <h5 class="mb-0">₹ ${subtotal.toLocaleString()}</h5>
+                </div>
+            `;
+
+            $('#cart-total-section').html(subtotalHTML);
+        }
+
+        // Show temporary message
+        function showCartMessage(message, isError = false){
+            let alertClass = isError ? 'alert-danger' : 'alert-success';
+
+            let alertBox = $(`
+                <div class="cart-message alert ${alertClass}" 
+                    style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+                    ${message}
+                </div>
+            `);
+
+            $('body').append(alertBox);
+
+            setTimeout(function(){
+                alertBox.fadeOut(500, function(){ $(this).remove(); });
+            }, 2500);
+        }
+
+
         ////Remove Cart Item
         $(document).on("click", ".removeCartItem", function () {
 
@@ -868,14 +1223,13 @@
 
                 success: function (res) {
                     if (res.status === "removed") {
-
                         if (res.product_id) {
                             $(`.addToCartBtn[data-product-id="${res.product_id}"]`)
                                 .removeClass("active in-cart");
                         }
 
                         if (res.subtotal !== undefined) {
-                            if (Number(res.subtotal) <= 0) {
+                            if (Number(res.subtotal) <= 0 || res.count === 0) {
 
                                 $("#cart-total-section").html(`
                                     <div class="cart-total text-center">
@@ -886,7 +1240,7 @@
                                 $(".sidebar-cart-list").html(`
                                     <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
                                 `);
-
+                                $("#cart-action-buttons").hide();
                             } else {
 
                                 $("#cart-total-section").html(`
@@ -895,6 +1249,7 @@
                                         <h5 class="mb-0">₹ ${Number(res.subtotal).toLocaleString()}</h5>
                                     </div>
                                 `);
+                                $("#cart-action-buttons").show();
                             }
                         }
 
@@ -913,7 +1268,6 @@
                                 `);
                             }
                         });
-
                         // Remove active state from add-to-cart button (on product detail page)
                         if (res.product_id) {
                             $(`.addToCartBtn[data-product-id="${res.product_id}"]`)
@@ -980,6 +1334,79 @@
                     }
                 }
             });
+        });
+
+        // When user clicks star,  STAR RATING
+        $("#stars li.star").on("click", function () {
+            @if(!auth()->check())
+                $("#flash-message").html(`
+                    <div class="alert alert-danger">Please login to use rating.</div>
+                `);
+
+                setTimeout(() => {
+                    $("#flash-message .alert").fadeOut();
+                }, 2500);
+
+                return false; 
+            @endif
+
+            var value = $(this).data("value");
+            $("#ratingInput").val(value);
+            $("#stars li.star").removeClass("selected");
+            $("#stars li.star").each(function(index){
+                if(index < value){
+                    $(this).addClass("selected");
+                }
+            });
+
+            $("#ratingError").text("");
+        });
+
+        //  STAR RATING AJAX submit
+        $("#reviewForm").submit(function(e){
+            e.preventDefault();
+
+            $("#ratingError").text("");
+            let formData = new FormData(this);
+
+            $.ajax({
+                url: "{{ route('product.review.store', $product->id) }}",
+                method: "POST",
+                data: formData,
+                cache: false,
+                contentType: false,
+                processData: false,
+
+                success: function(res){
+                    $("#comment").html(res.reviews_html);
+                    $("#reviewForm")[0].reset(); 
+                    $("#stars li.star").removeClass('selected');
+
+                    $("#flash-message").html(`
+                        <div class="alert alert-success">Thank you for submitting the review.</div>
+                    `);
+
+                    setTimeout(() => {
+                        $("#flash-message .alert").fadeOut();
+                    }, 2500);
+
+                    location.reload();
+                },
+
+                error: function(xhr){
+                    let errors = xhr.responseJSON.errors;
+
+                    if (errors.rating) {
+                        $("#ratingError").text(errors.rating[0]);
+                    }
+                }
+            });
+        });
+
+        $(document).ready(function() {
+            setTimeout(function() {
+                $('#reviewAlert').fadeOut('slow'); 
+            }, 5000); 
         });
 
 

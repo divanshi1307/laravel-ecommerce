@@ -28,6 +28,17 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">Slug <span class="text-danger">*</span></label>
+                    <input type="text" name="slug" 
+                           class="form-control @error('slug') is-invalid @enderror"
+                           value="{{ old('slug', $category->slug) }}" placeholder="Slug">
+                    @error('slug')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div class="clearfix"></div>
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">Description</label>
                     <textarea name="description" class="form-control">{{ old('description', $category->description) }}</textarea>
                     <div class="clearfix"></div>

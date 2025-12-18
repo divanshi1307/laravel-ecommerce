@@ -48,7 +48,7 @@
                             <div class="col-4 col-sm-4 col-md-3 col-lg-3 col-xl-1">
                                 <div class="dz-card bg-white shadow-sm rounded overflow-hidden h-100">
                                     <div class="dz-media ratio ratio-1x1">
-                                        <a href="{{ url('/subcategory/'.$sub->id) }}">
+                                        <a href="{{ url('/subcategory/'.$sub->slug) }}">
                                             <img src="{{ asset('storage/' .$sub->subcategory_image_small) }}" 
                                                 alt="{{ $sub->category_name }}" 
                                                 class="img-fluid object-fit-cover">
@@ -56,7 +56,9 @@
                                     </div>
 
                                     <div class="p-3">
-                                        <p class="mb-0 text-center fw-medium">{{ $sub->category_name }}</p>
+                                        <a href="{{ url('/subcategory/'.$sub->slug) }}">
+                                            <p class="mb-0 text-center fw-medium">{{ $sub->category_name }}</p>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -93,11 +95,13 @@
                             <li class="card-container col-6 col-xl-3 col-lg-3 col-md-4 col-sm-6 wow fadeInUp">
                                 <div class="shop-card">
                                     <div class="dz-media">
-                                        <img src="{{ asset('uploads/products/' .$product->first_image_url) }}" alt="{{ $product->title }}">
+                                        <a href="{{ route('product.show', $product->slug ) }}" class="product-link">
+                                            <img src="{{ asset('uploads/products/' . $product->display_image) }}" alt="{{ $product->title }}">
+                                        </a>
+                                        {{-- <img src="{{ asset('uploads/products/' .$product->first_image_url) }}" alt="{{ $product->title }}"> --}}
                                         <div class="shop-meta">
 
-                                            <a href="{{ route('product.show', $product->id) }}" 
-                                            class="btn btn-secondary btn-md btn-rounded">
+                                            <a href="{{ route('product.show', $product->slug ) }}" class="btn btn-secondary btn-md btn-rounded">
                                                 <i class="fa-solid fa-eye d-md-none d-block"></i>
                                                 <span class="d-md-block d-none">Quick View</span>
                                             </a>
@@ -113,7 +117,6 @@
                                             </div>
 
                                             {{-- Show Price --}}
-
                                             @php
                                                 // GST Percentage
                                                 $gstPercentage = 0;
@@ -130,7 +133,7 @@
                                                     $basePrice = $product->price ?? 0;
                                                     $originalBase = $product->original_price ?? $basePrice;
 
-                                                } elseif ($product->product_type == 'variant') {
+                                                } elseif ($product->product_type == 'variant' || $product->product_type == 'adult') {
                                                     $basePrice = $product->attributeRelations->min('price') ?? 0;
                                                     $originalBase = $product->attributeRelations->min('original_price') ?? $basePrice;
                                                 }
@@ -154,21 +157,36 @@
 
                                                 <input type="hidden" name="image" id="variantImage" value="{{ $defaultImage }}">
 
-                                                <div class="btn btn-primary meta-icon dz-carticon addToCartBtn 
+                                                @if(in_array($product->id, $cartProductIds ?? []))
+                                                    <div class="btn btn-primary meta-icon dz-carticon in-cart"
+                                                        data-product-id="{{ $product->id }}"
+                                                        data-variant-id="{{ $defaultVariant->id ?? '' }}"
+                                                        data-price="{{ $finalPrice }}"
+                                                        data-original-price="{{ $originalBase }}"
+                                                        data-discount="{{ $defaultVariant->discount ?? 0 }}"
+                                                        data-image="{{ $defaultImage }}">
+
+                                                        <i class="flaticon flaticon-basket"></i>
+                                                        <i class="flaticon flaticon-basket-on dz-heart-fill"></i>
+                                                    </div>
+                                                @endif
+
+                                                {{-- <div class="btn btn-primary meta-icon dz-carticon addToCartBtn
                                                     {{ in_array($product->id, $cartProductIds ?? []) ? 'in-cart' : '' }}" 
                                                     data-product-id="{{ $product->id }}" data-variant-id="{{ $defaultVariant->id ?? '' }}"
                                                     data-price="{{ $finalPrice }}" data-original-price="{{ $originalBase }}"
                                                     data-discount="{{ $defaultVariant->discount ?? 0 }}" data-image="{{ $defaultImage }}">
+                                                    
                                                     <i class="flaticon flaticon-basket"></i>
                                                     <i class="flaticon flaticon-basket-on dz-heart-fill"></i>
-                                                </div>
+                                                </div> --}}
                                             </form>
                                         </div>	
                                     </div>
 
                                     <div class="dz-content">
                                         <h5 class="title">
-                                            <a href="{{ url('product/'.$product->id) }}">
+                                            <a href="{{ route('product.show', $product->slug ) }}">
                                                 {{ \Illuminate\Support\Str::limit($product->title, 30, '...') }}
                                             </a>
                                         </h5>
@@ -184,7 +202,7 @@
                                         @if ($product->product_type == 'simple')
                                             <h5 class="price">₹ {{ number_format($finalPrice, 0) }}</h5>
 
-                                        @elseif ($product->product_type == 'variant')
+                                        @elseif ($product->product_type == 'variant' || $product->product_type == 'adult')
 
                                             @php
                                                 $minAttributePrice = $product->attributeRelations->min('price'); 
@@ -199,9 +217,9 @@
                                         @endif
                                     </div>
 
-                                    <div class="product-tag">
+                                    {{-- <div class="product-tag">
                                         <span class="badge ">Get 20% Off</span>
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </li>
                         @endforeach
@@ -224,15 +242,17 @@
                     <div class="swiper-wrapper">
                         @foreach($brands as $brand)
                         <div class="swiper-slide">
-                            <div class="company-box style-1 wow fadeInUp" data-wow-delay="0.4s">
-                                <div class="dz-media">
-                                    <img src="{{ asset('storage/'.$brand->brand_logo) }}" alt="{{ $brand->brand_name }}" class="company-img">
-                                    <img src="{{ asset('storage/'.$brand->brand_logo) }}" alt="{{ $brand->brand_name }}" class="logo">
+                            <a href="{{ route('brand.products', $brand->slug) }}" class="text-decoration-none">
+                                <div class="company-box style-1 wow fadeInUp" data-wow-delay="0.4s">
+                                    <div class="dz-media">
+                                        <img src="{{ asset('storage/'.$brand->brand_logo) }}" alt="{{ $brand->brand_name }}" class="company-img">
+                                        <img src="{{ asset('storage/'.$brand->brand_logo) }}" alt="{{ $brand->brand_name }}" class="logo">
+                                    </div>
+                                    <div class="dz-content">
+                                        <h6 class="title">{{ $brand->brand_name }}</h6>
+                                    </div>		
                                 </div>
-                                <div class="dz-content">
-                                    <h6 class="title">{{ $brand->brand_name }}</h6>
-                                </div>		
-                            </div>
+                            </a>
                         </div>
                         @endforeach
                     </div>
@@ -244,63 +264,91 @@
 
 @section('script')
     <script>
-
-        $(document).ready(function() {
-            $.ajax({
-                url: "{{ route('wishlist.render') }}",
-                type: "GET",
-                success: function(html) {
-                    $("#wishlistArea").html(html);
-                }
+        //// RENDER WISHLIST 
+        $(document).ready(function () {
+            $("#offcanvasRight").on("shown.bs.offcanvas", function () {
+                $.ajax({
+                    url: "{{ route('wishlist.render') }}",
+                    type: "GET",
+                    success: function (html) {
+                        $("#wishlistArea").html(html);
+                    },
+                    error: function () {
+                        $("#wishlistArea").html(`
+                            <li><p class="text-center text-danger">Failed to load wishlist.</p></li>
+                        `);
+                    }
+                });
             });
         });
 
-        $(document).on("click", ".dz-wishicon", function() 
-        {
+        ///// WISHLIST ICON
+        $(document).on("click", ".dz-wishicon", function (e) {
+            e.preventDefault();
+
             let btn = $(this);
             let productId = btn.data("product-id");
 
             $.ajax({
                 url: "/wishlist/toggle/" + productId,
                 type: "POST",
-                data: { _token: "{{ csrf_token() }}" },
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
 
-                success: function(res) {
+                success: function (res) {
+
+                    // ADD
                     if (res.status === "added") {
                         btn.addClass("active");
-						$("#flash-message").html('<div class="alert alert-success">Added to wishlist</div>');
+                        $("#flash-message").html(`
+                            <div class="alert alert-success">Added to wishlist</div>
+                        `);
                     }
 
+                    // REMOVE
                     if (res.status === "removed") {
                         btn.removeClass("active");
-						$("#flash-message").html('<div class="alert alert-danger">Removed from wishlist</div>');
+
+                        $(`#wishlistArea li[data-id="${productId}"]`).fadeOut(200, function () {
+                            $(this).remove();
+
+                            if ($("#wishlistArea li").length === 0) {
+                                $("#wishlistArea").html(`
+                                    <li><p class="text-center fs-5 fw-bold">No items in wishlist.</p></li>
+                                `);
+                            }
+                        });
+
+                        $("#flash-message").html(`
+                            <div class="alert alert-danger">Removed from wishlist</div>
+                        `);
                     }
+
+                    $("#wishlist-count, .wishlist-count").text(res.count);
 
                     setTimeout(() => {
                         $("#flash-message .alert").fadeOut();
                     }, 2000);
-
-                    $("#wishlistArea").html(res.html);
-                    $("#wishlist-count").text(res.count);
-
                 },
 
-                error: function(xhr) {
+                error: function (xhr) {
                     if (xhr.status === 401) {
                         $("#flash-message").html(`
-                            <div class="alert alert-danger">Please login to use wishlist.</div>
+                            <div class="alert alert-danger">
+                                Please login to use wishlist.
+                            </div>
                         `);
 
                         setTimeout(() => {
                             $("#flash-message .alert").fadeOut();
                         }, 2500);
-
-                        btn.removeClass("active");
                     }
                 }
             });
         });
 
+        ////////// REMOVE WISHLIST FOR SIDEBAR
         $(document).on("click", ".remove-wish", function () {
             let btn = $(this);
             let productId = btn.data("id");
@@ -325,6 +373,9 @@
                                 $("#wishlistArea").html(`
                                     <li><p class="text-center fs-5 fw-bold">No items in wishlist.</p></li>
                                 `);
+                            }
+                            if (res.wishlist_count !== undefined) {
+                                $(".wishlist-count").text(res.wishlist_count);
                             }
                         });
 
@@ -396,10 +447,7 @@
                         $('#variantDiscount').val(discount);
                         $('#variantImage').val(image.split('/').pop());
 
-                        // Mark button as in-cart
                         btn.addClass('in-cart');
-
-                        // Flash message
                         $("#flash-message").html(`
                             <div class="alert alert-success">Product add to cart.</div>
                         `);
@@ -409,19 +457,19 @@
                         }, 2000);
                     }
                 },
-                error: function(xhr) {
-                    if (xhr.status === 401) {
-                        $("#flash-message").html(`
-                            <div class="alert alert-danger">Please login to use add cart.</div>
-                        `);
+                // error: function(xhr) {
+                //     if (xhr.status === 401) {
+                //         $("#flash-message").html(`
+                //             <div class="alert alert-danger">Please login to use add cart.</div>
+                //         `);
 
-                        setTimeout(() => {
-                            $("#flash-message .alert").fadeOut();
-                        }, 2500);
+                //         setTimeout(() => {
+                //             $("#flash-message .alert").fadeOut();
+                //         }, 2500);
 
-                        btn.removeClass("active");
-                    }
-                }
+                //         btn.removeClass("active");
+                //     }
+                // }
             });
         });
 
@@ -440,10 +488,7 @@
                             '/images/default-product.png');
 
                     let name = item.product ? item.product.title : 'Product';
-
-                    // Calculate item subtotal
                     let itemSubtotal = parseFloat(item.price) * parseInt(item.quantity);
-
                     subtotal += itemSubtotal;
 
                     listHTML += `
@@ -460,7 +505,6 @@
                                     </h6>
 
                                     <div class="d-flex align-items-center">
-                                    
                                         <div class="quantity btn-quantity style-1 me-3">
                                             <div class="input-group bootstrap-touchspin">
                                                 <input type="text" value="${item.quantity}" min="1"
@@ -479,14 +523,12 @@
                                         </div>
 
                                         <h6 class="dz-price mb-0">₹${itemSubtotal.toFixed(0)}</h6>
-
                                     </div>
                                 </div>
 
                                 <a href="javascript:void(0);" class="dz-close removeCartItem" data-id="${item.id}">
                                     <i class="ti-close"></i>
                                 </a>
-
                             </div>
                         </li>
                     `;
@@ -524,6 +566,7 @@
             }, 2500);
         }
 
+        //// REMOVE CART FROM SIDEBAR
         $(document).on("click", ".removeCartItem", function () {
 
             let btn = $(this);
@@ -545,7 +588,7 @@
                         }
 
                         if (res.subtotal !== undefined) {
-                            if (Number(res.subtotal) <= 0) {
+                            if (Number(res.subtotal) <= 0 || res.count === 0) {
 
                                 $("#cart-total-section").html(`
                                     <div class="cart-total text-center">
@@ -556,7 +599,7 @@
                                 $(".sidebar-cart-list").html(`
                                     <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
                                 `);
-
+                                $("#cart-action-buttons").hide();
                             } else {
 
                                 $("#cart-total-section").html(`
@@ -565,6 +608,7 @@
                                         <h5 class="mb-0">₹ ${Number(res.subtotal).toLocaleString()}</h5>
                                     </div>
                                 `);
+                                $("#cart-action-buttons").show();
                             }
                         }
 
@@ -572,11 +616,10 @@
                             $("#cart-count").text(res.count);
                             $(".cart-count").text(res.count);
                         }
-
+                        
                         btn.closest("li").fadeOut(200, function () {
                             $(this).remove();
 
-                            // If no items left
                             if ($(".sidebar-cart-list li").length === 0) {
                                 $(".sidebar-cart-list").html(`
                                     <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
@@ -598,6 +641,7 @@
                         setTimeout(() => {
                             $("#flash-message .alert").fadeOut();
                         }, 2000);
+                        
                     }
                 },
 
@@ -609,15 +653,14 @@
             });
         });
 
-        //// Cart Qunatity Update
-        $(document).on('change', '.quantity-input', function () {
-
-            let input = $(this);
-            let quantity = parseInt(input.val());
-            let cartItemId = input.data('id');
+        //// CART QUANTITY UPDATE FROM SIDEBAR
+        $(document).on('change', '.quantity-input', function() {
+            let quantity = $(this).val();
+            let cartItemId = $(this).data('id');
 
             if (quantity < 1) quantity = 1;
 
+            let row = $(this).closest(".cart-content");
             $.ajax({
                 url: '/cart/update/' + cartItemId,
                 type: 'POST',
@@ -625,32 +668,19 @@
                     _token: '{{ csrf_token() }}',
                     quantity: quantity
                 },
+                success: function(res) {
 
-                success: function (res) {
-
-                    // Update item price instantly
-                    if (res.itemTotal) {
-                        input.closest('.quantity-wrapper')
-                            .find('.dz-price')
-                            .text("₹ " + res.itemTotal);
-                    }
-
-                    // Update subtotal instantly
-                    if (res.subtotal) {
-                        $("#cart-total-section").html(`
-                            <div class="cart-total d-flex justify-content-between">
-                                <h5 class="mb-0">Subtotal:</h5>
-                                <h5 class="mb-0">₹ ${res.subtotal}</h5>
-                            </div>
-                        `);
-                    }
-
-                    // Update cart count
-                    if (res.count !== undefined) {
+                    if(res.status){
+                        row.find(".dz-price").text("₹" + res.itemTotal);
+                        $("#cart-total-section h5:last").text("₹ " + res.subtotal);
                         $(".cart-count").text(res.count);
                     }
+                },
+                error: function() {
+                    alert("Error updating quantity");
                 }
             });
         });
+
     </script>
 @endsection

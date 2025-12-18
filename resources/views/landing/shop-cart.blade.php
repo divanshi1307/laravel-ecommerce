@@ -125,7 +125,7 @@
                                                 </td>
 
                                                 <!-- SUBTOTAL -->
-                                                <td class="product-item-subtotal">
+                                                <td class="product-item-subtotal" id="subtotalValue">
                                                     ₹ {{ number_format($subtotal) }}
                                                 </td>
 
@@ -143,95 +143,151 @@
                                         @endforeach
                                     @endif
                                 </tbody>
-
 							</table>
 						</div>
-                        <a href="{{ url('/') }}" class="btn btn-primary rounded-pill float-end">Continue Shopping</a>
-					</div>
-					<div class="col-lg-4">
-						<h4 class="title mb15">Cart Total</h4>
-						<div class="cart-detail">
-							<a href="javascript:void(0);" class="btn btn-outline-secondary w-100 m-b20">Bank Offer 5% Cashback</a>
-							<div class="icon-bx-wraper style-4 m-b15">
-								<div class="icon-bx">
-									<i class="flaticon flaticon-ship"></i>
-								</div>
-								<div class="icon-content">
-									<span class=" font-14">FREE</span>
-									<h6 class="dz-title">Enjoy The Product</h6>
-								</div>
-							</div>
-							<div class="icon-bx-wraper style-4 m-b30">
-								<div class="icon-bx">
-									<img src="images/shop/shop-cart/icon-box/pic2.png" alt="/">
-								</div>
-								<div class="icon-content">
-									<h6 class="dz-title">Enjoy The Product</h6>
-									<p>Lorem Ipsum is simply dummy text of the printing and typesetting</p>
-								</div>
-							</div>
-							
-                            @php
-                                $totalSaving = 0;
-                            @endphp
-
-                            @foreach($cartItems as $item)
-                                @php
-                                    $saving = $item->discount > 0
-                                        ? (($item->original_price - $item->price)) * $item->quantity
-                                        : 0;
-
-                                    $totalSaving += $saving;
-                                @endphp
-                            @endforeach
-
-                            @if($totalSaving > 0)
-                                <div class="save-text">
-                                    <i class="icon feather icon-check-circle"></i>
-                                    <span class="m-l10">
-                                        You will save ₹{{ number_format($totalSaving) }} on this order
-                                    </span>
+                        <form action="{{ route('cart.applyCoupon') }}" method="POST">
+                            @csrf
+                            <div class="row shop-form m-t30">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <div class="input-group mb-0">
+                                            <input name="coupon_code" required type="text" class="form-control" placeholder="Coupon Code">
+                                            <div class="input-group-addon">
+                                                <button type="submit" class="btn coupon">
+                                                    Apply Coupon
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            @endif
-
-							<table>
-								<tbody>
-
-                                    @php
-                                        $grandTotal = 0;
-                                    @endphp
-
-                                    @foreach($cartItems as $item)
-                                        @php
-                                            $product = $item->product;
-                                            // ---------- PRICE LOGIC ----------
-                                            if ($product->product_type == 'simple') {
-                                                $basePrice = $item->price;
-                                                $baseOriginal = $item->original_price;
-                                            } else {
-                                                $basePrice = $item->price ?? 0;
-                                                $baseOriginal = $item->original_price ?? null;
-                                            }
-                                            $subtotal = $basePrice * $item->quantity;
-                                            $grandTotal += $subtotal;
-
-                                        @endphp
-                                    @endforeach
-
-                                    <tr class="total">
-                                        <td>
-                                            <h6 class="mb-0">Total</h6>
-                                        </td>
-                                        <td class="price">
-                                            ₹ {{ number_format($grandTotal, 0) }}
-                                        </td>
-                                    </tr>
-
-								</tbody>
-							</table>
-							<a href="{{route('checkout')}}" class="btn btn-secondary w-100">PLACE ORDER</a>
-						</div>
+                                <div class="col-md-6 text-end">
+                                    <a href="{{ url('/') }}" class="btn btn-primary rounded-pill float-end">Continue Shopping</a>
+                                </div>
+                            </div>
+                        </form>
 					</div>
+                    @if($cartItems->count() > 0)
+                        <div class="col-lg-4 price-detail-section">
+                            {{-- <h4 class="title mb15">Cart Total</h4> --}}
+                            <h4 class="title mb15">Price details</h4>
+                            <div class="cart-detail">
+                                {{-- <a href="javascript:void(0);" class="btn btn-outline-secondary w-100 m-b20">Bank Offer 5% Cashback</a>
+                                <div class="icon-bx-wraper style-4 m-b15">
+                                    <div class="icon-bx">
+                                        <i class="flaticon flaticon-ship"></i>
+                                    </div>
+                                    <div class="icon-content">
+                                        <span class=" font-14">FREE</span>
+                                        <h6 class="dz-title">Enjoy The Product</h6>
+                                    </div>
+                                </div>
+                                <div class="icon-bx-wraper style-4 m-b30">
+                                    <div class="icon-bx">
+                                        <img src="images/shop/shop-cart/icon-box/pic2.png" alt="/">
+                                    </div>
+                                    <div class="icon-content">
+                                        <h6 class="dz-title">Enjoy The Product</h6>
+                                        <p>Lorem Ipsum is simply dummy text of the printing and typesetting</p>
+                                    </div>
+                                </div> --}}
+
+                                @php
+                                    $totalMrp = 0;
+                                    $totalSelling = 0;
+                                    $totalSaving = 0;
+                                @endphp
+
+                                @foreach($cartItems as $item)
+                                    @php
+                                        $mrp = ($item->original_price && $item->original_price > 0)
+                                                ? $item->original_price
+                                                : $item->price;
+
+                                        $selling = $item->price;
+
+                                        $totalMrp += $mrp * $item->quantity;
+                                        $totalSelling += $selling * $item->quantity;
+                                    @endphp
+                                @endforeach
+
+                                @php
+                                    $totalDiscount = max(0, $totalMrp - $totalSelling);
+                                @endphp
+
+                                <div class="cart-summary-box mb-20">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-semibold small text-secondary">Price ({{ $cartItems->count() }} items)</span>
+                                        <span>₹{{ number_format($totalMrp) }}</span>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-semibold small text-secondary">Discount</span>
+                                        <span class="text-success">- ₹{{ number_format($totalDiscount) }}</span>
+                                    </div>
+
+                                    <hr>
+                                </div>
+                                
+                                @foreach($cartItems as $item)
+                                    @php
+                                        if (!empty($item->original_price) && $item->original_price > $item->price) {
+                                            $saving = ($item->original_price - $item->price) * $item->quantity;
+                                        } else {
+                                            $saving = 0;
+                                        }
+
+                                        $totalSaving += $saving;
+                                    @endphp
+                                @endforeach
+
+                                @if($totalSaving > 0)
+                                    <div class="save-text">
+                                        <i class="icon feather icon-check-circle"></i>
+                                        <span class="m-l10">
+                                            You will save ₹{{ number_format($totalSaving) }} on this order
+                                        </span>
+                                    </div>
+                                @endif
+
+                                <table>
+                                    <tbody>
+
+                                        @php
+                                            $grandTotal = 0;
+                                        @endphp
+
+                                        @foreach($cartItems as $item)
+                                            @php
+                                                $product = $item->product;
+                                                // ---------- PRICE LOGIC ----------
+                                                if ($product->product_type == 'simple') {
+                                                    $basePrice = $item->price;
+                                                    $baseOriginal = $item->original_price;
+                                                } else {
+                                                    $basePrice = $item->price ?? 0;
+                                                    $baseOriginal = $item->original_price ?? null;
+                                                }
+                                                $subtotal = $basePrice * $item->quantity;
+                                                $grandTotal += $subtotal;
+
+                                            @endphp
+                                        @endforeach
+
+                                        <tr class="total">
+                                            <td>
+                                                <h5 class="mb-0">Total</h5>
+                                            </td>
+                                            <td class="price" id="grandTotalValue">
+                                                ₹ {{ number_format($grandTotal, 0) }}
+                                            </td>
+                                        </tr>
+
+                                    </tbody>
+                                </table>
+                                <a href="{{route('checkout')}}" class="btn btn-secondary w-100">PLACE ORDER</a>
+                            </div>
+                        </div>
+                    @endauth
 				</div>
 			</div>
 			<!-- Product END -->
@@ -244,19 +300,24 @@
 @section('script')
     <script>
 
-        $(document).ready(function() {
-            if ($("#wishlistArea").length > 0) {
+        $(document).ready(function () {
+            $("#offcanvasRight").on("shown.bs.offcanvas", function () {
                 $.ajax({
                     url: "{{ route('wishlist.render') }}",
                     type: "GET",
-                    success: function(html) {
+                    success: function (html) {
                         $("#wishlistArea").html(html);
+                    },
+                    error: function () {
+                        $("#wishlistArea").html(`
+                            <li><p class="text-center text-danger">Failed to load wishlist.</p></li>
+                        `);
                     }
                 });
-            }
+            });
         });
 
-        ////Remove Cart Item
+        ////REMOVE CART ITEM
         $(document).on("click", ".removeCartItem", function () {
 
             let btn = $(this);
@@ -278,7 +339,7 @@
                         }
 
                         if (res.subtotal !== undefined) {
-                            if (Number(res.subtotal) <= 0) {
+                            if (Number(res.subtotal) <= 0 || res.count === 0) {
 
                                 $("#cart-total-section").html(`
                                     <div class="cart-total text-center">
@@ -289,6 +350,7 @@
                                 $(".sidebar-cart-list").html(`
                                     <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
                                 `);
+                                $("#cart-action-buttons").hide();
 
                             } else {
 
@@ -298,6 +360,7 @@
                                         <h5 class="mb-0">₹ ${Number(res.subtotal).toLocaleString()}</h5>
                                     </div>
                                 `);
+                                $("#cart-action-buttons").show();
                             }
                         }
 
@@ -305,11 +368,10 @@
                             $("#cart-count").text(res.count);
                             $(".cart-count").text(res.count);
                         }
-
+                        
                         btn.closest("li").fadeOut(200, function () {
                             $(this).remove();
 
-                            // If no items left
                             if ($(".sidebar-cart-list li").length === 0) {
                                 $(".sidebar-cart-list").html(`
                                     <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
@@ -331,6 +393,7 @@
                         setTimeout(() => {
                             $("#flash-message .alert").fadeOut();
                         }, 2000);
+                        
                     }
                 },
 
@@ -342,13 +405,13 @@
             });
         });
 
-        //// Cart Qunatity Update
-
+        //// CART QUANTITY UPDATE 
         $(document).on('change', '.quantity-input', function() {
             let quantity = $(this).val();
             let cartItemId = $(this).data('id');
 
-            if(quantity < 1) quantity = 1;
+            if (quantity < 1) quantity = 1;
+            let row = $(this).closest("tr"); 
 
             $.ajax({
                 url: '/cart/update/' + cartItemId,
@@ -358,13 +421,15 @@
                     quantity: quantity
                 },
                 success: function(res) {
-                    location.reload(); 
+                    row.find(".product-item-subtotal").text("₹ " + res.itemTotal);
+                    $("#subtotalValue").text("₹ " + res.subtotal);
+                    $("#grandTotalValue").text("₹ " + res.grandTotal);
+
                 },
-                error: function(err) {
+                error: function() {
                     alert('Error updating quantity');
                 }
             });
         });
-
     </script>
 @endsection

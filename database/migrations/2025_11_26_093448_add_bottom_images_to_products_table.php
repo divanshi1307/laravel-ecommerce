@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::table('products', function (Blueprint $table) {
             $table->string('bottom_images')->nullable()->after('images');
+            $table->string('tags')->nullable()->after('bottom_images');
+            $table->date('manufacture_date')->nullable()->after('tags');
         });
     }
 
@@ -22,7 +24,7 @@ return new class extends Migration
     public function down()
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn('bottom_images');
+            $table->dropColumn('bottom_images','tags','manufacture_date');
         });
     }
 };

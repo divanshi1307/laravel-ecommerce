@@ -80,6 +80,16 @@ if( !in_array($current_route,['login','dashboard']) ){
                                                 <a href="{{ url('admin/orders') }}">
                                                     <i class="fa fa-shopping-cart"></i> Orders</a>
                                             </li>
+
+                                            <li class="{{ Request::is('admin/coupons*') ? 'active-nav' : '' }}">
+                                                <a href="{{ route('coupon.list') }}">
+                                                    <i class="fa fa-percent"></i> Coupon</a>
+                                            </li>
+
+                                            <li class="{{ Request::is('admin/cms*') ? 'active-nav' : '' }}">
+                                                <a href="{{ route('cms.list') }}">
+                                                    <i class="fa fa-tasks"></i> CMS</a>
+                                            </li>
                                             
                                             <li class="{{ Request::is('admin/age-groups*') ? 'active-nav' : '' }}">
                                                 <a href="{{ url('admin/age-groups') }}">

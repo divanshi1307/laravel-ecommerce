@@ -11,7 +11,7 @@
                             @if($category->children->count() > 0)
                                 <ul>
                                     @foreach($category->children as $sub)
-                                        <li><a href="{{ url('/subcategory/'.$sub->id) }}">{{ $sub->category_name }}</a></li>
+                                        <li><a href="{{ url('/subcategory/'.$sub->slug) }}">{{ $sub->category_name }}</a></li>
                                     @endforeach
                                 </ul>
                             @endif
@@ -45,7 +45,7 @@
                 <div class="col-lg-6 col-md-12 text-end"> 
                     <div class="d-flex align-items-center justify-content-center justify-content-md-center justify-content-xl-end">
                         <span class="me-3">We Accept: </span>
-                        <img src="images/footer-img.png" alt="">
+                        <img src="{{asset('landing/images/footer-img.png')}}" alt="">
                     </div>
                 </div>
             </div>

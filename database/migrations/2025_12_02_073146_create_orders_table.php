@@ -18,11 +18,14 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name')->nullable();
             $table->string('company_name')->nullable();
+            $table->string('coupon_id')->nullable();
+            $table->string('coupon')->nullable();
             $table->string('country');
             $table->string('street_address');
             $table->string('apartment')->nullable();
             $table->string('city');
             $table->string('state');
+            $table->string('area');
             $table->string('pincode');
             $table->string('phone');
             $table->string('email');

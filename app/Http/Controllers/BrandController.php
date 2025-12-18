@@ -36,6 +36,7 @@ class BrandController extends Controller
     {
         $request->validate([
             'brand_name' => 'required|string|max:255',
+            'slug' => 'required|unique:categories,slug',
             'brand_logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'sort_order' => 'nullable|integer|min:0',
         ]);
@@ -74,6 +75,7 @@ class BrandController extends Controller
         $brands = Brand::findOrFail($id); 
         $request->validate([
             'brand_name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:categories,slug,' . $brands->id,
             'brand_logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 

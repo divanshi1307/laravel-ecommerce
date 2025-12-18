@@ -9,6 +9,8 @@ use App\Http\View\Composers\CartComposer;
 use App\Models\Wishlist;
 use App\Models\Category;
 use App\Models\CartItem;
+use Illuminate\Support\Facades\DB;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        DB::statement("SET sql_mode = (SELECT REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', ''));");
         View::composer('*', function ($view) {
             $wishlist = auth()->check()
                 ? Wishlist::where('user_id', auth()->id())->with('product')->get()

@@ -48,6 +48,7 @@
                                         <div class="nav-title bg-light">ACCOUNT SETTINGS</div>
                                         <ul class="account-info-list">
                                             <li><a href="{{route('account.profile')}}">Profile</a></li>
+                                            <li><a href="{{route('account.reviews')}}">Review</a></li>
                                         </ul>
                                     </div>
                                 </div>

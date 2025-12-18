@@ -31,8 +31,11 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label>Item Code</label>
-                    <input type="text" name="product_item_code" value="{{ old('product_item_code') }}" class="form-control" placeholder="Item Code">
+                    <label>Slug <span class="text-danger">*</span></label>
+                    <input type="text" name="slug" value="{{ old('slug') }}" class="form-control @error('title') is-invalid @enderror" placeholder="Slug">
+                    @error('slug')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="col-md-6 mb-3">
@@ -119,6 +122,7 @@
                             <option value="">Select Product Type</option>
                             <option value="simple" {{ old('product_type') == 'simple' ? 'selected' : '' }}>Module For Simple Product</option>
                             <option value="variant" {{ old('product_type') == 'variant' ? 'selected' : '' }}>Module For Variant Product</option>
+                            <option value="adult" {{ old('product_type') == 'adult' ? 'selected' : '' }}>Module For Adult Product</option>
                         </select>
 
                         <i class="fa fa-caret-down select-icon" aria-hidden="true"></i>
@@ -220,7 +224,7 @@
 
                     <div class="attribute_values_container">
                         <div class="d-flex flex-wrap align-items-end gap-3 attribute_type">
-                            <div class="col-md-3">
+                            <div class="col-md-3" id="baby_weight_section">
                                 <label class="form-label">Baby Weight</label>
                                 <select name="baby_weight_id[0][]" class="form-control custom-select-box">
                                     <option value="">-- Select Baby Weight--</option>
@@ -232,7 +236,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-md-3" id="age_group_section">
                                 <label class="form-label">Age Groups</label>
                                 <select name="age_group_id[0][]" class="form-control custom-select-box">
                                     <option value="">-- Select Age Groups--</option>
@@ -243,9 +247,22 @@
                                     @endforeach
                                 </select>
                             </div>
+
+                            <div class="col-md-3" id="adult_waist_section">
+                                <label class="form-label">Adult Waist</label>
+                                <select name="adult_waist_id[0][]" class="form-control custom-select-box">
+                                    <option value="">-- Select Adult Waist--</option>
+                                    @foreach($adult_waist as $waist)
+                                        <option value="{{ $waist->id }}">
+                                            {{ $waist->waist_size }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             <div class="col-md-3">
                                 <label class="form-label">Attribute Value <span class="text-danger">*</span></label>
-                                <input type="text" name="attribute_value[0][]" class="form-control" placeholder="e.g. Red, Large" required>
+                                <input type="text" name="attribute_value[0][]" class="form-control" placeholder="Quantity in Piece" required>
                             </div>
 
                             <div class="d-flex align-items-end" style="gap:8px;">
@@ -298,6 +315,16 @@
                     <label>Bottom Images</label>
                     <input type="file" name="bottom_images[]" class="form-control" multiple>
                 </div>
+
+                <div class="col-md-6 mb-3">
+                    <label>Tags</label>
+                    <input type="text" name="tags" class="form-control" value="{{ old('tags') }}" placeholder="Tags">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label>Manufacturing Date</label>
+                    <input type="date" name="manufacture_date" class="form-control" value="{{ old('manufacture_date') }}" placeholder="Manufacturing Date">
+                </div>
                 
                 <!-- SEO -->
                 <div class="col-md-12 mb-3">
@@ -321,6 +348,11 @@
                 <div class="col-md-12 mb-3">
                     <label>Meta Keywords</label>
                     <input type="text" name="meta_tags" class="form-control" value="{{ old('meta_tags') }}" placeholder="Meta Keywords">
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label>Meta Tags</label>
+                    <textarea name="meta_snippet" id="meta_snippet" placeholder="Meta Tags" class="form-control">{{ old('meta_snippet') }}</textarea>
                 </div>
 
             </div>
@@ -426,8 +458,21 @@
             if (type === 'variant') {
                 $('#price_section').hide();
                 $('#stock_section').hide();
+                $('#adult_waist_section').hide();
                 $('#variant_button_section').show();
                 $('#attribute_section').show();
+                $('#baby_weight_section').show();
+                $('#age_group_section').show();
+
+            } else if (type === 'adult') {
+                $('#price_section').hide();
+                $('#stock_section').hide();
+                $('#variant_button_section').show();
+                $('#attribute_section').show();
+                $('#baby_weight_section').hide();
+                $('#age_group_section').hide();
+                $('#adult_waist_section').show();
+
             } else {
                 $('#price_section').show();
                 $('#stock_section').show();

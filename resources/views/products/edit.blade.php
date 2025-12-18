@@ -21,7 +21,7 @@
             <div class="clearfix"></div>
 
             <div class="row">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-12 mb-3">
                     <label>Product Title <span class="text-danger">*</span></label>
                     <input type="text" name="title" class="form-control @error('title') is-invalid @enderror"
                         value="{{ old('title', $product->title) }}">
@@ -32,8 +32,17 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label>Product Item Code</label>
-                    <input type="text" name="product_item_code" class="form-control" value="{{ $product->product_item_code }}">
+                    <label>Slug <span class="text-danger">*</span></label>
+                    <input type="text" name="slug" class="form-control @error('slug') is-invalid @enderror" value="{{ old('slug', $product->slug) }}">
+
+                    @error('slug')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label>Item Code</label>
+                    <input type="text" name="product_item_code" class="form-control" value="{{ $product->product_item_code }}" readonly>
                 </div>
 
                 <div class="col-md-6 mb-3">
@@ -111,6 +120,7 @@
                             <option value="">Select Product Type</option>
                             <option value="simple" {{ $product->product_type=='simple'?'selected':'' }}>Module For Simple Product</option>
                             <option value="variant" {{ $product->product_type=='variant'?'selected':'' }}>Module For Variant Product</option>
+                            <option value="adult" {{ $product->product_type=='adult'?'selected':'' }}>Module For Adult Product</option>
                         </select>
                         <i class="fa fa-caret-down select-icon" aria-hidden="true"></i>
                         @error('product_type')
@@ -234,7 +244,7 @@
                             @foreach($group['rows'] as $rowIndex => $row)
                                 <div class="d-flex flex-wrap align-items-end gap-3 attribute_type">
 
-                                    <div class="col-md-3">
+                                    <div class="col-md-3 baby_weight_section">
                                         <label class="form-label">Baby Weight</label>
                                         <select name="baby_weight_id[{{ $index }}][]" class="form-control custom-select-box">
                                             <option value="">-- Select Baby Weight--</option>
@@ -247,7 +257,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-md-3">
+                                    <div class="col-md-3 age_group_section">
                                         <label class="form-label">Age Groups</label>
                                         <select name="age_group_id[{{ $index }}][]" class="form-control custom-select-box">
                                             <option value="">-- Select Age Groups--</option>
@@ -260,10 +270,22 @@
                                         </select>
                                     </div>
 
+                                    <div class="col-md-3 adult_waist_section">
+                                        <label class="form-label">Adult Waist</label>
+                                        <select name="adult_waist_id[{{ $index }}][]" class="form-control custom-select-box">
+                                            <option value="">-- Select Adult Waist--</option>
+                                            @foreach($adult_waist as $waist)
+                                                <option value="{{ $waist->id }}" 
+                                                    {{ isset($row['adult_waist_id']) && $row['adult_waist_id'] == $waist->id ? 'selected' : '' }}>
+                                                    {{ $waist->waist_size }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
                                     <div class="col-md-3">
                                         <label class="form-label">Attribute Value <span class="text-danger">*</span></label>
-                                        <input type="text" name="attribute_value[{{ $index }}][]" class="form-control"
-                                            value="{{ $row['attribute_value'] }}">
+                                        <input type="text" name="attribute_value[{{ $index }}][]" class="form-control" placeholder="Quantity in Piece" value="{{ $row['attribute_value'] }}">
                                     </div>
 
                                     <div class="d-flex align-items-end" style="gap:8px;">
@@ -280,7 +302,7 @@
 
             <!-- Variant Combinations -->
 
-            @if($product->product_type == 'variant')
+            @if($product->product_type == 'variant' || $product->product_type == 'adult')
                 <div id="variant_wrapper">
                     <hr>
                     <h5 class="mt-4 mb-3">Variant Combinations</h5>
@@ -317,7 +339,7 @@
                                         </div>
 
                                         <div class="col-md-2">
-                                            <label>Quantity</label>
+                                            <label>Stock Quantity</label>
                                             <input type="number" name="quantity[]" 
                                                 value="{{ $row->quantity ?? '' }}"
                                                 class="form-control" placeholder="quantity">
@@ -437,6 +459,16 @@
                     </div>
                 </div>
 
+                <div class="col-md-6 mb-3">
+                    <label>Tags</label>
+                    <input type="text" name="tags" placeholder="Tags" class="form-control" value="{{ $product->tags }}">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label>Manufacturing Date</label>
+                    <input type="date" name="manufacture_date" class="form-control" value="{{ old('manufacture_date', $product->manufacture_date?->format('Y-m-d')) }}" placeholder="Manufacturing Date">
+                </div>
+
                 <!-- SEO -->
                 <div class="col-md-12 mb-3">
                     <hr><h4>SEO Section</h4>
@@ -465,6 +497,11 @@
                 <div class="col-md-12 mb-3">
                     <label>Meta Keywords</label>
                     <input type="text" name="meta_tags" placeholder="Meta Keywords" class="form-control" value="{{ $product->meta_tags }}">
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label>Meta Tags</label>
+                    <textarea name="meta_snippet" id="meta_snippet" placeholder="Meta Tags" class="form-control">{{ $product->meta_snippet }}</textarea>
                 </div>
             </div>
 
@@ -686,11 +723,23 @@
                 $('input[name="price"]').closest('.col-md-6').hide();
                 $('input[name="special_price"]').closest('.col-md-6').hide();
                 $('#stock_section').hide();
+                $('.adult_waist_section').hide();
                 $('#variant_button_section').show();
                 $('#attribute_section').show();
                 $('#variant_wrapper').show();
+                $('.baby_weight_section').show();
+                $('.age_group_section').show();
 
-            } else {
+            } else if (type === 'adult') {
+                $('#price_section').hide();
+                $('#stock_section').hide();
+                $('#variant_button_section').show();
+                $('#attribute_section').show();
+                $('.baby_weight_section').hide();
+                $('.age_group_section').hide();
+                $('.adult_waist_section').show();
+
+            }else {
                 $('input[name="price"]').closest('.col-md-6').show();
                 $('input[name="special_price"]').closest('.col-md-6').show();
                 $('#stock_section').show();
@@ -880,8 +929,8 @@
                 // Update all rows inside this group
                 $(this).closest(".attribute_row").find(".attribute_type").each(function() {
                     $(this).find("input[name^='attribute_value']").attr("name", `attribute_value[${groupIndex}][]`);
-                    $(this).find("input[name^='weight_value']").attr("name", `weight_value[${groupIndex}][]`);
-                    $(this).find("select[name^='weight_type']").attr("name", `weight_type[${groupIndex}][]`);
+                    $(this).find("input[name^='baby_weight_id']").attr("name", `baby_weight_id[${groupIndex}][]`);
+                    $(this).find("select[name^='age_group_id']").attr("name", `age_group_id[${groupIndex}][]`);
                 });
             });
         }

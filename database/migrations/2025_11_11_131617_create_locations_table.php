@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('state');
             $table->string('city');
+            $table->string('area')->nullable();
             $table->string('pincode');
+            $table->decimal('shipping_charge', 10, 2)->default(0); 
             $table->boolean('is_active')->default(1);
             $table->timestamps();
             $table->softDeletes();

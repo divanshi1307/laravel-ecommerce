@@ -13,7 +13,8 @@
                         <ul class="breadcrumb">
                             <li class="breadcrumb-item"><a href="{{ url('/') }}"> Home</a></li>
                             <li class="breadcrumb-item">
-                                <a href="{{ url('/category/'.$category->id) }}">{{ $category->category_name }}</a>
+                                {{-- <a href="{{ url('/category/'.$category->slug) }}">{{ $category->category_name }}</a> --}}
+                                <a href="{{ url('/subcategory/'.$subcategory->slug) }}">{{ $category->category_name }}</a>                                
                             </li>
                             <li class="breadcrumb-item active">{{ $subcategory->category_name }}</li>
                         </ul>
@@ -56,7 +57,7 @@
 
                                                         <div class="cat-list">
                                                             @foreach ($cat->children as $child)
-                                                                <a href="{{ url('subcategory/' . $child->id) }}"
+                                                                <a href="{{ url('subcategory/' . $child->slug) }}"
                                                                 class="cat-item"
                                                                 data-cat="{{ $cat->slug }}"
                                                                 data-value="{{ $child->slug }}">
@@ -80,6 +81,7 @@
 
                                             <div class="price-slide range-slider">
                                                 <div class="range-slider style-1">
+
                                                     <div id="priceSlider" class="mb-3"></div>
 
                                                     <div class="d-flex justify-content-between">
@@ -87,13 +89,13 @@
                                                         <small id="slider-max-label">₹{{ request('max_price', $maxAvailablePrice) }}</small>
                                                     </div>
 
-                                                    <input type="hidden" id="min_price" name="min_price"
-                                                        value="{{ request('min_price', $minAvailablePrice) }}">
-                                                    <input type="hidden" id="max_price" name="max_price"
-                                                        value="{{ request('max_price', $maxAvailablePrice) }}">
+                                                    <input type="hidden" id="min_price" name="min_price" value="{{ request('min_price', $minAvailablePrice) }}">
+                                                    <input type="hidden" id="max_price" name="max_price" value="{{ request('max_price', $maxAvailablePrice) }}">
+
                                                 </div>
                                             </div>
                                         </form>
+
                                     </div>
 
                                     <!-- Size -->
@@ -115,37 +117,28 @@
                                     </form> --}}
 
                                     <!-- BABY WEIGHT Filter -->
-                                    <div class="widget widget_categories">
-                                        <h6 class="widget-title">COMPATIBLE BABY WEIGHT</h6>
-
-                                        @php
-                                            $babyWeights = \App\Models\BabyWeight::orderBy('id')->get();
-                                            $selectedWeight = request('baby_weight') ?? [];
-                                            if(!is_array($selectedWeight)) {
-                                                $selectedWeight = [$selectedWeight];
-                                            }
-                                        @endphp
-
-                                        <form id="babyWeightFilterForm" method="GET" action="{{ url()->current() }}">
-                                            @foreach(request()->except('baby_weight') as $key => $value)
-                                                @if(is_array($value))
-                                                    @foreach($value as $v)
-                                                        <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
-                                                    @endforeach
-                                                @else
-                                                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                                                @endif
-                                            @endforeach
+                                    @if($babyWeights->count() > 0)
+                                        <div class="widget widget_categories">
+                                            <h6 class="widget-title">COMPATIBLE BABY WEIGHT</h6>
 
                                             @php
-                                                $babyWeights = \App\Models\BabyWeight::orderBy('id')->get();
                                                 $selectedWeights = request('baby_weight', []);
-                                                if(!is_array($selectedWeights)) {
+                                                if (!is_array($selectedWeights)) {
                                                     $selectedWeights = [$selectedWeights];
                                                 }
                                             @endphp
 
-                                            @if($babyWeights->count() > 0)
+                                            <form id="babyWeightFilterForm" method="GET" action="{{ url()->current() }}">
+                                                @foreach(request()->except('baby_weight') as $key => $value)
+                                                    @if(is_array($value))
+                                                        @foreach($value as $v)
+                                                            <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                                                        @endforeach
+                                                    @else
+                                                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                                    @endif
+                                                @endforeach
+
                                                 <ul class="list-unstyled mb-0">
                                                     @foreach($babyWeights as $bw)
                                                         <li class="cat-item mb-1">
@@ -159,37 +152,33 @@
                                                         </li>
                                                     @endforeach
                                                 </ul>
-                                            @else
-                                                <p class="text-muted">No baby weights available</p>
-                                            @endif
-                                        </form>
-                                    </div>
+                                            </form>
+                                        </div>
+                                    @endif
 
                                     <!-- AGE GROUP Filter -->
-                                    <div class="widget widget_categories">
-                                        <h6 class="widget-title">AGE GROUP</h6>
+                                    @if($ageGroups->count() > 0)
+                                        <div class="widget widget_categories">
+                                            <h6 class="widget-title">AGE GROUP</h6>
 
-                                        @php
-                                            $ageGroups = \App\Models\AgeGroup::orderBy('id')->get();
+                                            @php
+                                                $selectedAges = request('age_group', []);
+                                                if (!is_array($selectedAges)) {
+                                                    $selectedAges = [$selectedAges];
+                                                }
+                                            @endphp
 
-                                            $selectedAges = request('age_group', []);
-                                            if (!is_array($selectedAges)) {
-                                                $selectedAges = [$selectedAges];
-                                            }
-                                        @endphp
+                                            <form id="ageGroupFilterForm" method="GET" action="{{ url()->current() }}">
+                                                @foreach(request()->except('age_group') as $key => $value)
+                                                    @if(is_array($value))
+                                                        @foreach($value as $v)
+                                                            <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                                                        @endforeach
+                                                    @else
+                                                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                                    @endif
+                                                @endforeach
 
-                                        <form id="ageGroupFilterForm" method="GET" action="{{ url()->current() }}">
-                                            @foreach(request()->except('age_group') as $key => $value)
-                                                @if(is_array($value))
-                                                    @foreach($value as $v)
-                                                        <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
-                                                    @endforeach
-                                                @else
-                                                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                                                @endif
-                                            @endforeach
-
-                                            @if($ageGroups->count() > 0)
                                                 <ul class="list-unstyled mb-0">
                                                     @foreach($ageGroups as $ag)
                                                         <li class="cat-item mb-1">
@@ -203,12 +192,50 @@
                                                         </li>
                                                     @endforeach
                                                 </ul>
-                                            @else
-                                                <p class="text-muted">No age groups available</p>
-                                            @endif
-                                        </form>
-                                    </div>
+                                            </form>
+                                        </div>
+                                    @endif
 
+                                    <!-- ADULT WAIST Filter -->
+                                    @if($adultWaists->count() > 0)
+                                        <div class="widget widget_categories">
+                                            <h6 class="widget-title">ADULT WAIST</h6>
+
+                                            @php
+                                                $selectedWaists = request('adult_waist', []);
+                                                if (!is_array($selectedWaists)) {
+                                                    $selectedWaists = [$selectedWaists];
+                                                }
+                                            @endphp
+
+                                            <form id="adultWaistFilterForm" method="GET" action="{{ url()->current() }}">
+                                                @foreach(request()->except('adult_waist') as $key => $value)
+                                                    @if(is_array($value))
+                                                        @foreach($value as $v)
+                                                            <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                                                        @endforeach
+                                                    @else
+                                                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                                    @endif
+                                                @endforeach
+
+                                                <ul class="list-unstyled mb-0">
+                                                    @foreach($adultWaists as $aw)
+                                                        <li class="cat-item mb-1">
+                                                            <label class="d-flex align-items-center">
+                                                                <input type="checkbox" name="adult_waist[]" value="{{ $aw->id }}"
+                                                                    onchange="this.form.submit()"
+                                                                    @if(in_array($aw->id, $selectedWaists)) checked @endif
+                                                                    class="me-2">
+                                                                <span>{{ $aw->waist_size }}</span>
+                                                            </label>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </form>
+                                        </div>
+                                    @endif
+                                    
                                     <!-- Brands -->
                                     <div class="widget widget_categories">
                                         <h6 class="widget-title">BROWSE BY BRAND</h6>
@@ -217,12 +244,12 @@
                                             @foreach($brands as $brand)
                                                 <ul>
                                                     <li class="cat-item">
-                                                        <a href="javascript:void(0)">{{ $brand->brand_name }}</a>
+                                                        <a href="{{ route('brand.products', $brand->slug) }}">{{ $brand->brand_name }}</a>
                                                     </li>
                                                 </ul>
                                             @endforeach
                                         @else
-                                            <p class="text-muted">No brands available</p>
+                                            <p>No brands available</p>
                                         @endif
                                     </div>
 
@@ -253,7 +280,7 @@
                                                         </div>
                                                         <div class="dz-content">
                                                             <h6 class="title">
-                                                                <a href="{{ url('/subcategory/' . $sub->id) }}">
+                                                                <a href="{{ url('/subcategory/' . $sub->slug) }}">
                                                                     {{ $sub->category_name }}
                                                                 </a>
                                                             </h6>
@@ -271,26 +298,29 @@
 
                         <!-- Sorting + Per Page -->
                         <div class="filter-wrapper border-top p-t20">
-                            {{-- <div class="filter-left-area">								
-                                <ul class="filter-tag">
-                                    <li>
-                                        <a href="javascript:void(0);" class="tag-btn">Dresses 
-                                            <i class="icon feather icon-x tag-close"></i>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0);" class="tag-btn">Tops
-                                            <i class="icon feather icon-x tag-close"></i>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0);" class="tag-btn">Outerwear 
-                                            <i class="icon feather icon-x tag-close"></i>
-                                        </a>
-                                    </li>
-                                </ul>
-                                <span>Showing 1–5 Of 50 Results</span>
-                            </div> --}}
+                            @if (!empty($activeFilters))
+                                <div class="filter-left-area">								
+                                    <ul class="filter-tag">
+                                        @foreach ($activeFilters as $filter)
+                                            <li>
+                                                <a href="{{ request()->fullUrlWithQuery([
+                                                        $filter['type'] => collect(request()->input($filter['type'], []))
+                                                                            ->reject(fn($v) => $v == $filter['id'])
+                                                                            ->values()
+                                                                            ->all()
+                                                    ]) }}" class="tag-btn">
+                                                    {{ $filter['label'] }}
+                                                    <i class="icon feather icon-x tag-close"></i>
+                                                </a>
+
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                    <span>
+                                        Showing {{ $products->count() }} Of {{ $products->total() }} Results
+                                    </span>
+                                </div>
+                            @endif
 
                             <!-- Filters -->
                             <div class="filter-right-area">
@@ -324,128 +354,130 @@
                         <!-- PRODUCT LIST -->
                         <div id="flash-message"></div>
                         <div class="clearfix">
-                            @if ($products->count())
-                                <ul id="masonry" class="row g-xl-4 g-3">
-                                    @foreach ($products as $product)
-                                        <li class="card-container col-6 col-xl-3 col-lg-3 col-md-4 col-sm-6 wow fadeInUp">
-                                            <div class="shop-card">
-                                                <div class="dz-media">
-                                                    <img src="{{ asset('uploads/products/' .$product->first_image_url) }}" alt="{{ $product->title }}">
-                                                    <div class="shop-meta">
+                            <ul id="masonry" class="row g-xl-4 g-3">
+                                @foreach ($products as $product)
+                                    <li class="card-container col-6 col-xl-3 col-lg-3 col-md-4 col-sm-6 wow fadeInUp">
+                                        <div class="shop-card">
+                                            <div class="dz-media">
+                                                <a href="{{ route('product.show', $product->slug ) }}" class="product-link">
+                                                    <img src="{{ asset('uploads/products/' . $product->display_image) }}" alt="{{ $product->title }}">
+                                                </a>
+                                                {{-- <img src="{{ asset('uploads/products/' .$product->first_image_url) }}" alt="{{ $product->title }}"> --}}
+                                                <div class="shop-meta">
 
-                                                        <a href="{{ route('product.show', $product->id) }}" 
-                                                        class="btn btn-secondary btn-md btn-rounded">
-                                                            <i class="fa-solid fa-eye d-md-none d-block"></i>
-                                                            <span class="d-md-block d-none">Quick View</span>
-                                                        </a>
+                                                    <a href="{{ route('product.show', $product->slug ) }}" class="btn btn-secondary btn-md btn-rounded">
+                                                        <i class="fa-solid fa-eye d-md-none d-block"></i>
+                                                        <span class="d-md-block d-none">Quick View</span>
+                                                    </a>
 
-                                                        @php
-                                                            $isWishlisted = \App\Models\Wishlist::where('user_id', auth()->id())->where('product_id', $product->id)->exists();
-                                                        @endphp
+                                                    @php
+                                                        $isWishlisted = \App\Models\Wishlist::where('user_id', auth()->id())->where('product_id', $product->id)->exists();
+                                                    @endphp
 
-                                                        <div class="btn btn-primary meta-icon dz-wishicon {{ $isWishlisted ? 'active' : '' }}"
-                                                            data-product-id="{{ $product->id }}">
-                                                            <i class="icon feather icon-heart dz-heart"></i>
-                                                            <i class="icon feather icon-heart-on dz-heart-fill"></i>
-                                                        </div>
-
-                                                        {{-- Show Price --}}
-
-                                                        @php
-                                                            // GST Percentage
-                                                            $gstPercentage = 0;
-                                                            if (!empty($product->gst)) {
-                                                                $gstPercentage = (float) str_replace('%', '', $product->gst->gst_percentage);
-                                                            }
-
-                                                            $defaultImage = ($defaultVariant->variant_images ?? null) ?: ($product->image ?? ($product->images_list->first()->file_name ?? ''));
-
-                                                            $basePrice = 0;
-                                                            $originalBase = 0; 
-
-                                                            if ($product->product_type == 'simple') {
-                                                                $basePrice = $product->price ?? 0;
-                                                                $originalBase = $product->original_price ?? $basePrice;
-
-                                                            } elseif ($product->product_type == 'variant') {
-                                                                $basePrice = $product->attributeRelations->min('price') ?? 0;
-                                                                $originalBase = $product->attributeRelations->min('original_price') ?? $basePrice;
-                                                            }
-
-                                                            $finalPrice = $basePrice + ($basePrice * $gstPercentage / 100);
-                                                        @endphp
-
-                                                        <form action="{{ route('cart.add') }}" method="POST">
-                                                            @csrf
-
-                                                            <input type="hidden" name="product_id" value="{{ $product->id }}">
-
-                                                            <input type="hidden" name="variant_id" id="variantId" value="{{ $defaultVariant->id ?? '' }}">
-
-                                                            <input type="hidden" name="price" id="variantPrice" value="{{ $finalPrice }}">
-
-                                                            <input type="hidden" name="original_price" id="variantOriginalPrice" value="{{ $originalBase }}">
-
-                                                            <input type="hidden" name="discount" id="variantDiscount" value="{{ $defaultVariant->discount ?? 0 }}">
-                                                            <input type="hidden" name="source" value="home">
-
-                                                            <input type="hidden" name="image" id="variantImage" value="{{ $defaultImage }}">
-
-                                                            <div class="btn btn-primary meta-icon dz-carticon addToCartBtn 
-                                                                {{ in_array($product->id, $cartProductIds ?? []) ? 'in-cart' : '' }}" 
-                                                                data-product-id="{{ $product->id }}" data-variant-id="{{ $defaultVariant->id ?? '' }}"
-                                                                data-price="{{ $finalPrice }}" data-original-price="{{ $originalBase }}"
-                                                                data-discount="{{ $defaultVariant->discount ?? 0 }}" data-image="{{ $defaultImage }}">
-                                                                <i class="flaticon flaticon-basket"></i>
-                                                                <i class="flaticon flaticon-basket-on dz-heart-fill"></i>
-                                                            </div>
-                                                        </form>
-                                                    </div>	
-                                                </div>
-
-                                                <div class="dz-content">
-                                                    <h5 class="title">
-                                                        <a href="{{ url('product/'.$product->id) }}">
-                                                            {{ \Illuminate\Support\Str::limit($product->title, 30, '...') }}
-                                                        </a>
-                                                    </h5>
+                                                    <div class="btn btn-primary meta-icon dz-wishicon {{ $isWishlisted ? 'active' : '' }}"
+                                                        data-product-id="{{ $product->id }}">
+                                                        <i class="icon feather icon-heart dz-heart"></i>
+                                                        <i class="icon feather icon-heart-on dz-heart-fill"></i>
+                                                    </div>
 
                                                     {{-- Show Price --}}
                                                     @php
+                                                        // GST Percentage
                                                         $gstPercentage = 0;
-                                                        if ($product->gst) {
+                                                        if (!empty($product->gst)) {
                                                             $gstPercentage = (float) str_replace('%', '', $product->gst->gst_percentage);
+                                                        }
+
+                                                        $defaultImage = ($defaultVariant->variant_images ?? null) ?: ($product->image ?? ($product->images_list->first()->file_name ?? ''));
+
+                                                        $basePrice = 0;
+                                                        $originalBase = 0; 
+
+                                                        if ($product->product_type == 'simple') {
+                                                            $basePrice = $product->price ?? 0;
+                                                            $originalBase = $product->original_price ?? $basePrice;
+
+                                                        } elseif ($product->product_type == 'variant' || $product->product_type == 'adult') {
+                                                            $basePrice = $product->attributeRelations->min('price') ?? 0;
+                                                            $originalBase = $product->attributeRelations->min('original_price') ?? $basePrice;
+                                                        }
+
+                                                        $finalPrice = $basePrice + ($basePrice * $gstPercentage / 100);
+                                                    @endphp
+
+                                                    <form action="{{ route('cart.add') }}" method="POST">
+                                                        @csrf
+
+                                                        <input type="hidden" name="product_id" value="{{ $product->id }}">
+
+                                                        <input type="hidden" name="variant_id" id="variantId" value="{{ $defaultVariant->id ?? '' }}">
+
+                                                        <input type="hidden" name="price" id="variantPrice" value="{{ $finalPrice }}">
+
+                                                        <input type="hidden" name="original_price" id="variantOriginalPrice" value="{{ $originalBase }}">
+
+                                                        <input type="hidden" name="discount" id="variantDiscount" value="{{ $defaultVariant->discount ?? 0 }}">
+                                                        <input type="hidden" name="source" value="home">
+
+                                                        <input type="hidden" name="image" id="variantImage" value="{{ $defaultImage }}">
+
+                                                        @if(in_array($product->id, $cartProductIds ?? []))
+                                                            <div class="btn btn-primary meta-icon dz-carticon in-cart"
+                                                                data-product-id="{{ $product->id }}"
+                                                                data-variant-id="{{ $defaultVariant->id ?? '' }}"
+                                                                data-price="{{ $finalPrice }}"
+                                                                data-original-price="{{ $originalBase }}"
+                                                                data-discount="{{ $defaultVariant->discount ?? 0 }}"
+                                                                data-image="{{ $defaultImage }}">
+
+                                                                <i class="flaticon flaticon-basket"></i>
+                                                                <i class="flaticon flaticon-basket-on dz-heart-fill"></i>
+                                                            </div>
+                                                        @endif
+                                                    </form>
+                                                </div>	
+                                            </div>
+
+                                            <div class="dz-content">
+                                                <h5 class="title">
+                                                    <a href="{{ route('product.show', $product->slug ) }}">
+                                                        {{ \Illuminate\Support\Str::limit($product->title, 30, '...') }}
+                                                    </a>
+                                                </h5>
+
+                                                {{-- Show Price --}}
+                                                @php
+                                                    $gstPercentage = 0;
+                                                    if ($product->gst) {
+                                                        $gstPercentage = (float) str_replace('%', '', $product->gst->gst_percentage);
+                                                    }
+                                                @endphp
+
+                                                @if ($product->product_type == 'simple')
+                                                    <h5 class="price">₹ {{ number_format($finalPrice, 0) }}</h5>
+
+                                                @elseif ($product->product_type == 'variant' || $product->product_type == 'adult')
+
+                                                    @php
+                                                        $minAttributePrice = $product->attributeRelations->min('price'); 
+                                                        if ($minAttributePrice) {
+                                                            $minPriceWithGst = $minAttributePrice + ($minAttributePrice * $gstPercentage / 100);
+                                                        } else {
+                                                            $minPriceWithGst = 0;
                                                         }
                                                     @endphp
 
-                                                    @if ($product->product_type == 'simple')
-                                                        <h5 class="price">₹ {{ number_format($finalPrice, 0) }}</h5>
-
-                                                    @elseif ($product->product_type == 'variant')
-
-                                                        @php
-                                                            $minAttributePrice = $product->attributeRelations->min('price'); 
-                                                            if ($minAttributePrice) {
-                                                                $minPriceWithGst = $minAttributePrice + ($minAttributePrice * $gstPercentage / 100);
-                                                            } else {
-                                                                $minPriceWithGst = 0;
-                                                            }
-                                                        @endphp
-
-                                                        <h5 class="price">₹ {{ number_format($minPriceWithGst, 0) }}</h5>
-                                                    @endif
-                                                </div>
-
-                                                <div class="product-tag">
-                                                    <span class="badge ">Get 20% Off</span>
-                                                </div>
+                                                    <h5 class="price">₹ {{ number_format($minPriceWithGst, 0) }}</h5>
+                                                @endif
                                             </div>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @else
-                                <p class="text-muted fs-5 fw-bold">No products found in this subcategory.</p>
-                            @endif
+
+                                            {{-- <div class="product-tag">
+                                                <span class="badge ">Get 20% Off</span>
+                                            </div> --}}
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
                         </div>
 
                         <!-- Pagination -->
@@ -527,15 +559,16 @@
         window.location.href = url.toString();
     });
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const minAvailable = 0;
-        const maxAvailable = Number("{{ $maxAvailablePrice ?? 50000 }}");
+    $(document).ready(function () {
+        const minAvailable = Number("{{ $minAvailablePrice }}");
+        const maxAvailable = Number("{{ $maxAvailablePrice }}");
 
-        const startMin = Number("{{ request('min_price', 0) }}");
+        const startMin = Number("{{ request('min_price', $minAvailablePrice) }}");
         const startMax = Number("{{ request('max_price', $maxAvailablePrice) }}");
 
-        const slider = document.getElementById('priceSlider');
+        const slider = $('#priceSlider')[0];
 
+        // Initialize slider only once
         if (!slider.noUiSlider) {
             noUiSlider.create(slider, {
                 start: [startMin, startMax],
@@ -545,44 +578,50 @@
                     'max': maxAvailable
                 },
                 step: 1,
-                tooltips: false,  
-                format: {
-                    to: value => Math.round(value),
-                    from: value => Number(value)
-                }
+                tooltips: false
             });
         }
 
-        const minInput = document.getElementById('min_price');
-        const maxInput = document.getElementById('max_price');
-        const minLabel = document.getElementById('slider-min-label');
-        const maxLabel = document.getElementById('slider-max-label');
-        const form = document.getElementById('priceFilterForm');
+        const minInput = $('#min_price');
+        const maxInput = $('#max_price');
+        const minLabel = $('#slider-min-label');
+        const maxLabel = $('#slider-max-label');
+        const form = $('#priceFilterForm');
 
+        // Update labels while sliding
         slider.noUiSlider.on('update', function (values) {
-            minLabel.textContent = '₹' + values[0];
-            maxLabel.textContent = '₹' + values[1];
+            minLabel.text('₹' + values[0]);
+            maxLabel.text('₹' + values[1]);
         });
 
+        // Submit form when slide stops (change event)
         slider.noUiSlider.on('change', function (values) {
-            minInput.value = values[0];
-            maxInput.value = values[1];
+            minInput.val(values[0]);
+            maxInput.val(values[1]);
             form.submit();
         });
     });
 
-    $(document).ready(function() {
-        $.ajax({
-            url: "{{ route('wishlist.render') }}",
-            type: "GET",
-            success: function(html) {
-                $("#wishlistArea").html(html);
-            }
+    //// RENDER WISHLIST
+    $(document).ready(function () {
+        $("#offcanvasRight").on("shown.bs.offcanvas", function () {
+            $.ajax({
+                url: "{{ route('wishlist.render') }}",
+                type: "GET",
+                success: function (html) {
+                    $("#wishlistArea").html(html);
+                },
+                error: function () {
+                    $("#wishlistArea").html(`
+                        <li><p class="text-center text-danger">Failed to load wishlist.</p></li>
+                    `);
+                }
+            });
         });
     });
 
-    $(document).on("click", ".dz-wishicon", function() 
-    {
+    ///// WISHLIST ICON
+    $(document).on("click", ".dz-wishicon", function() {
         let btn = $(this);
         let productId = btn.data("product-id");
 
@@ -592,40 +631,41 @@
             data: { _token: "{{ csrf_token() }}" },
 
             success: function(res) {
+
+                // ADD
                 if (res.status === "added") {
                     btn.addClass("active");
                     $("#flash-message").html('<div class="alert alert-success">Added to wishlist</div>');
+                    
                 }
 
+                // REMOVE
                 if (res.status === "removed") {
                     btn.removeClass("active");
+                    $(`#wishlistArea li[data-id="${productId}"]`).fadeOut(200, function() {
+                        $(this).remove();
+
+                        if ($("#wishlistArea li").length === 0) {
+                            $("#wishlistArea").html(`
+                                <li><p class="text-center fs-5 fw-bold">No items in wishlist.</p></li>
+                            `);
+                        }
+                    });
+
                     $("#flash-message").html('<div class="alert alert-danger">Removed from wishlist</div>');
                 }
 
+                // Update both counters
+                $("#wishlist-count").text(res.count);
+                $(".wishlist-count").text(res.count);    
                 setTimeout(() => {
                     $("#flash-message .alert").fadeOut();
                 }, 2000);
-
-                $("#wishlistArea").html(res.html);
-                $("#wishlist-count").text(res.count);
-            },
-
-            error: function(xhr) {
-                if (xhr.status === 401) {
-                    $("#flash-message").html(`
-                        <div class="alert alert-danger">Please login to use wishlist.</div>
-                    `);
-
-                    setTimeout(() => {
-                        $("#flash-message .alert").fadeOut();
-                    }, 2500);
-
-                    btn.removeClass("active");
-                }
             }
         });
     });
 
+    ////////// REMOVE WISHLIST FOR SIDEBAR
     $(document).on("click", ".remove-wish", function () {
         let btn = $(this);
         let productId = btn.data("id");
@@ -650,6 +690,9 @@
                             $("#wishlistArea").html(`
                                 <li><p class="text-center fs-5 fw-bold">No items in wishlist.</p></li>
                             `);
+                        }
+                        if (res.wishlist_count !== undefined) {
+                            $(".wishlist-count").text(res.wishlist_count);
                         }
                     });
 
@@ -859,7 +902,7 @@
                     }
 
                     if (res.subtotal !== undefined) {
-                        if (Number(res.subtotal) <= 0) {
+                        if (Number(res.subtotal) <= 0 || res.count === 0) {
 
                             $("#cart-total-section").html(`
                                 <div class="cart-total text-center">
@@ -870,7 +913,7 @@
                             $(".sidebar-cart-list").html(`
                                 <li><p class="text-center fs-5 fw-bold">Your cart is empty.</p></li>
                             `);
-
+                            $("#cart-action-buttons").hide();
                         } else {
 
                             $("#cart-total-section").html(`
@@ -879,6 +922,7 @@
                                     <h5 class="mb-0">₹ ${Number(res.subtotal).toLocaleString()}</h5>
                                 </div>
                             `);
+                            $("#cart-action-buttons").show();
                         }
                     }
 

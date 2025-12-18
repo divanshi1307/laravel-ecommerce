@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\ProductReview;
 use App\Models\Wishlist;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -71,5 +73,21 @@ class AccountController extends Controller
         return back()->with('success', 'Profile updated successfully!');
     }
 
+    /// REVIEWS
+    public function reviews()
+    {
+        $userId = auth()->id();
+        $orderedItems = OrderItem::with('product')
+            ->whereHas('order', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->get();
 
+        // Fetch user reviews
+        $reviews = ProductReview::with('product')
+            ->where('user_id', $userId)
+            ->get();
+
+        return view('landing.account-review', compact('orderedItems', 'reviews'));
+    }
 }

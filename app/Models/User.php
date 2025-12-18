@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'country_code',
         'phone_number',
+        'is_guest',
         'is_verified',
         'profile_image'
     ];

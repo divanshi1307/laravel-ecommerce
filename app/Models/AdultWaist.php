@@ -16,4 +16,8 @@ class AdultWaist extends Model
     {
         return 'slug';
     }
+
+    public function productAttributes() {
+        return $this->hasMany(ProductAttribute::class, 'adult_waist_id');
+    }
 }

@@ -22,36 +22,40 @@ class WishlistController extends Controller
         if (!auth()->check()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Please login to add items to wishlist.'
+                'message' => 'Please login to use wishlist.'
             ], 401);
         }
-        $wishlist = Wishlist::where('user_id', auth()->id())
+
+        $userId = auth()->id();
+
+        $wishlist = Wishlist::where('user_id', $userId)
             ->where('product_id', $product->id)
             ->first();
 
-        if ($wishlist) {
-            return response()->json([
-                'status' => 'already'
-            ]);
-        }
-
+        // REMOVE ITEM
         if ($wishlist) {
             $wishlist->delete();
-            $status = 'removed';
-        } else {
-            Wishlist::create([
-                'user_id' => auth()->id(),
-                'product_id' => $product->id
+
+            return response()->json([
+                'status' => 'removed',
+                'html'   => $this->render(),
+                'count'  => Wishlist::where('user_id', $userId)->count()
             ]);
-            $status = 'added';
         }
 
+        // ADD ITEM
+        Wishlist::create([
+            'user_id' => $userId,
+            'product_id' => $product->id
+        ]);
+
         return response()->json([
-            'html' => $this->render(),
-            'status' => $status,
-            'count' => Wishlist::where('user_id', auth()->id())->count()
+            'status' => 'added',
+            'html'   => $this->render(),
+            'count'  => Wishlist::where('user_id', $userId)->count()
         ]);
     }
+
 
     public function render()
     {
@@ -81,7 +85,8 @@ class WishlistController extends Controller
 
         return response()->json([
             'status' => 'removed',
-            'message' => 'Item removed from wishlist.'
+            'message' => 'Item removed from wishlist.',
+            'wishlist_count' => Wishlist::where('user_id', auth()->id())->count()
         ]);
     }
 

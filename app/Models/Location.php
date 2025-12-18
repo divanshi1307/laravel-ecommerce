@@ -13,7 +13,9 @@ class Location extends Model
     protected $fillable = [
         'state',
         'city',
+        'area',
         'pincode',
+        'shipping_charge',
         'is_active',
     ];
 }

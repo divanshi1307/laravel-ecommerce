@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\UserOtp;
+use App\Models\CartItem;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
@@ -76,9 +77,7 @@ class AuthController extends Controller
         });
 
         session(['email' => $user->email]);
-
-        return redirect()->route('otp.verify.page')
-            ->with('success', 'OTP sent to your email');
+        return redirect()->route('otp.verify.page')->with('success', 'OTP sent to your email');
     }
 
     // ======================
@@ -94,7 +93,6 @@ class AuthController extends Controller
         return view('landing.auth.login', compact('categories'));
     }
 
-
     // ======================
     // LOGIN USER
     // ======================
@@ -106,7 +104,6 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
-
         if (!$user) {
             return back()->withErrors(['email' => 'User not found']);
         }
@@ -115,16 +112,44 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'Your email is not verified.']);
         }
 
+        $sessionId = $request->session()->getId();
+        CartItem::whereNull('user_id')->where('session_id', $sessionId)->update(['user_id' => $user->id]);
+        // $cartItem = CartItem::where('session_id', $request->session()->getId())->first();
+        // $cartItem->update(['user_id'   => $user->id]);
+
+
         if (Auth::attempt($request->only('email', 'password'))) {
             $request->session()->regenerate();
 
-            return redirect()->route('home')
-                ->with('success', 'Login Successful!');
+            return redirect()->intended(route('home'))->with('success', 'Login Successful!');
         }
 
         return back()->withErrors(['email' => 'Invalid email or password']);
     }
 
+    // ======================
+    // GUEST LOGIN
+    // ======================
+
+    public function guestLogin(Request $request)
+    {
+        $guestEmail = 'guest_' . uniqid() . '@guest.com';
+        $user = User::create([
+            'name' => 'Guest User',
+            'email' => $guestEmail,
+            'password'  => Hash::make(Str::random(16)),
+            'is_guest' => 1
+        ]);
+
+        $sessionId = $request->session()->getId();
+        CartItem::whereNull('user_id')->where('session_id', $sessionId)->update(['user_id' => $user->id]);
+        
+        // $cartItem = CartItem::where('session_id', $request->session()->getId())->first();
+        // $cartItem->update(['user_id' => $user->id]);
+
+        Auth::login($user);
+        return redirect()->intended(route('home'))->with('status', 'You are now logged in as Guest!');
+    }
 
     // ======================
     // SHOW OTP PAGE

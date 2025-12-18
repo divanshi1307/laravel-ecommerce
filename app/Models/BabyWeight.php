@@ -15,4 +15,8 @@ class BabyWeight extends Model
     {
         return 'slug';
     }
+    
+    public function productAttributes() {
+        return $this->hasMany(ProductAttribute::class, 'baby_weight_id');
+    }
 }

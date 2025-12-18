@@ -22,6 +22,10 @@ class LocationController extends Controller
             $query->where('city', $request->city);
         }
 
+        if ($request->filled('area')) {
+            $query->where('area', $request->area);
+        }
+
         if ($request->filled('pincode')) {
             $query->where('pincode', $request->pincode);
         }
@@ -48,16 +52,24 @@ class LocationController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'state' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'pincode' => 'required|string|max:10',
+            'state'           => 'required|string|max:255',
+            'city'            => 'required|string|max:255',
+            'area'            => 'nullable|string|max:255',
+            'pincode'         => 'required|string|max:10',
+            'shipping_charge'  => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-
-        Location::create($request->only(['state', 'city', 'pincode']));
+        Location::create([
+            'state'           => $request->state,
+            'city'            => $request->city,
+            'area'            => $request->area,
+            'pincode'         => $request->pincode,
+            'shipping_charge' => $request->shipping_charge,
+            'is_active'       => '1',
+        ]);
         return redirect()->route('locations.index')->with('success', 'Location added successfully.');
     }
 
@@ -85,16 +97,24 @@ class LocationController extends Controller
     {
         $location = Location::findOrFail($id);
         $validator = Validator::make($request->all(), [
-            'state' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'pincode' => 'required|string|max:10',
+            'state'            => 'required|string|max:255',
+            'city'             => 'required|string|max:255',
+            'area'             => 'required|string|max:255',
+            'pincode'          => 'required|string|max:10',
+            'shipping_charge'  => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-
-        $location->update($request->only(['state', 'city', 'pincode']));
+        $location->update([
+            'state'            => $request->state,
+            'city'             => $request->city,
+            'area'             => $request->area,
+            'pincode'          => $request->pincode,
+            'shipping_charge'  => $request->shipping_charge,
+            'is_active'        => '1',
+        ]);
         return redirect()->route('locations.index')->with('success', 'Location updated successfully.');
     }
 

@@ -32,9 +32,20 @@
             </div>
 
             <div class="form-group">
+                <label>Area</label>
+                <input type="text" name="area" class="form-control" placeholder="Area" value="{{ old('area', $location->area) }}">
+            </div>
+
+            <div class="form-group">
                 <label>Pincode <span class="text-danger">*</span></label>
                 <input type="text" name="pincode" class="form-control" value="{{ old('pincode', $location->pincode) }}">
                 @error('pincode') <small class="text-danger">{{ $message }}</small> @enderror
+            </div>
+
+            <div class="form-group">
+                <label>Shipping Charge <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" name="shipping_charge" class="form-control" value="{{ old('shipping_charge', $location->shipping_charge) }}">
+                @error('shipping_charge') <small class="text-danger">{{ $message }}</small> @enderror
             </div>
         </form>
     </div>
